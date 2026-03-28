@@ -1,0 +1,41 @@
+### Create Concerns
+POST http://localhost:5000/api/concerns/create
+Content-Type: application/json
+
+{
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": "1234567890",
+    "message": "This is a test message",
+    "businessType": "nm",
+    "inquiryType": "general"
+}
+
+
+### Get All Concerns
+GET http://localhost:5000/api/concerns/getAll
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NDQyOTMyMywiZXhwIjoxNzc0NTE1NzIzfQ.oAaLsmG5lwHaqzFg9ag02jad81LQF4SZJam3wJAsYQo
+
+### Get View Concerns
+GET http://localhost:5000/api/concerns/view/69c3a32729705576a6985d7b
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NDQyOTMyMywiZXhwIjoxNzc0NTE1NzIzfQ.oAaLsmG5lwHaqzFg9ag02jad81LQF4SZJam3wJAsYQo
+
+
+### Update Concerns
+PUT http://localhost:5000/api/concerns/update/69c3a32729705576a6985d7b
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NDQyOTMyMywiZXhwIjoxNzc0NTE1NzIzfQ.oAaLsmG5lwHaqzFg9ag02jad81LQF4SZJam3wJAsYQo
+
+{
+    "status": "resolved",
+    "notes": "This concern has been resolved."
+    
+}
+
+
+### Delete Concerns
+DELETE http://localhost:5000/api/concerns/delete/69c3a56829705576a6985d83
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NDQyOTMyMywiZXhwIjoxNzc0NTE1NzIzfQ.oAaLsmG5lwHaqzFg9ag02jad81LQF4SZJam3wJAsYQo

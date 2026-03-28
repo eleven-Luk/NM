@@ -1,0 +1,56 @@
+### Create application
+POST http://localhost:5000/api/applications/create
+Content-Type: application/json
+
+{
+    "jobId": "67d9a6ec7a1fb472b0d509f4",
+    "firstName": "John",
+    "lastName": "Doe",
+    "email": "john.doe@example.com",
+    "phone": "1234567890",
+    "resume": "test-resume.pdf"
+}
+### Get All Jobs
+GET http://localhost:5000/api/jobs/all
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Get All Applications
+GET http://localhost:5000/api/applications/getAll
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Update Application Status
+PUT http://localhost:5000/api/applications/updateStatus/69bb8124fb69ac85d019f80d
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+{
+    "status": "rejected",
+    "notes": "Candidate did not meet the requirements"
+}
+
+### Move to Archive
+PUT http://localhost:5000/api/applications/archive/69bb8124fb69ac85d019f80d
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Get Archived Applications
+GET http://localhost:5000/api/applications/archived
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+
+### Get Application by ID
+GET http://localhost:5000/api/applications/view/69bb8124fb69ac85d019f80d
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+
+### Get Archived Application
+GET http://localhost:5000/api/applications/archived
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Delete Application
+DELETE http://localhost:5000/api/applications/delete/69bb8124fb69ac85d019f80d

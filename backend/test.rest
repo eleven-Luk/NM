@@ -1,0 +1,71 @@
+### Register User
+POST http://localhost:5000/api/auth/register
+Content-Type: application/json
+
+{
+    "username": "admin",
+    "email": "admin@gmail.com",
+    "password": "123456"
+}
+
+### Login User
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3Mjk0MDU1NiwiZXhwIjoxNzczMDI2OTU2fQ.a3-FxLi3w29npbYfeTqSdjub-8RQvaarpLZN2HQZ6sI
+
+{
+    "email": "admin@gmail.com",
+    "password": "123456"
+}
+
+### Create Job
+POST http://localhost:5000/api/jobs/create
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+{
+    "name": "Software Engineer",
+    "description": "Develop and maintain software applications",
+    "location": "Remote",
+    "type": "Full-time",
+    "salary": "100000"
+}
+
+### Get All Jobs
+GET http://localhost:5000/api/jobs/all
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Get view Job
+GET http://localhost:5000/api/jobs/69b3c7d9b73aad232dd8acc0
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Update Job
+PUT http://localhost:5000/api/jobs/update/69b3c7d9b73aad232dd8acc0
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+{
+    "name": "Software Engineer",
+    "description": "Develop and maintain software applications",
+    "location": "Remote",
+    "type": "Full-time",
+    "salary": 120000
+}
+
+### Soft Delete Job
+PATCH http://localhost:5000/api/jobs/soft-delete/69b3c7d9b73aad232dd8acc0
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+### Restore Job
+PUT http://localhost:5000/api/jobs/restore/69b3c7d9b73aad232dd8acc0
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
+
+
+### Permanently Delete Job  
+DELETE http://localhost:5000/api/jobs/delete/69b3c7d9b73aad232dd8acc0
+Content-Type: application/json
+token: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3MzM4OTY1NywiZXhwIjoxNzczNDc2MDU3fQ.uDCcSMl_UNAq_nE2mCOe8xagycKBP6Tf0qHNm2V47iw
