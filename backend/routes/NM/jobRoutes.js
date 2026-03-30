@@ -1,6 +1,9 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createJob, getAllJobs, permanentlyDeleteJob, restoreJob, softDeleteJob, getViewJob, updateJob } from '../../controllers/NM/JobController.js';
+import { createJob, getAllJobs, getViewJob, updateJob
+    , moveToArchive, getArchivedJobs, restoreJob, deleteArchivedJob, viewArchivedJob
+ } from '../../controllers/NM/JobController.js';
+ import { protect } from '../../middleware/auth.js';
 
 const router = express.Router();
 
@@ -15,21 +18,21 @@ const validateJobCreation = [
 
 // Get routes
 router.get('/all', getAllJobs);
-router.get('/:id', getViewJob);
+router.get('/archived', protect, getArchivedJobs);
+router.get('/archived/:jobId', protect, viewArchivedJob);
+router.get('/:id', getViewJob)
 
 // Put routes
-router.put('/restore/:id', restoreJob);
-router.put('/update/:id', validateJobCreation, updateJob);
+router.put('/restore/:jobId', protect, restoreJob); // Fixed: removed duplicate, using :jobId
+router.put('/update/:id', protect, validateJobCreation, updateJob);
 
 // Patch routes
-router.patch('/soft-delete/:id', softDeleteJob);
+router.patch('/archive/:jobId', protect, moveToArchive);
 
 // Delete routes
-router.delete('/delete/:id', permanentlyDeleteJob);
-
-
+router.delete('/delete/:jobId', protect, deleteArchivedJob); // Fixed: added protect middleware
 
 // Post routes
-router.post('/create', validateJobCreation, createJob);
+router.post('/create', protect, validateJobCreation, createJob);
 
 export default router;

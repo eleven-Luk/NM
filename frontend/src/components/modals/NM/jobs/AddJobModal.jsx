@@ -224,7 +224,7 @@ function AddJobModal({ isOpen, onClose, onSave }) {
             </div>
 
             {/* Job Type and Status */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                         Employment Type
@@ -241,23 +241,6 @@ function AddJobModal({ isOpen, onClose, onSave }) {
                         <option value="Part-Time">Part-time</option>
                         <option value="Contract">Contract</option>
                         <option value="Internship">Internship</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Job Status
-                    </label>
-                    <select
-                        name="status"
-                        value={formData.status}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-400/20 focus:border-blue-400 transition-all bg-gray-50/50"
-                        disabled={loading}
-                    >
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="closed">Closed</option>
                     </select>
                 </div>
             </div>

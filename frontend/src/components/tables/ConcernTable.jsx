@@ -17,7 +17,11 @@ const ConcernTable = ({
     StatusBadge,
     updatingId,
     currentPage = 1,
-    itemsPerPage = 10
+    itemsPerPage = 10,
+    isSelectMode = false,
+    selectedConcerns = [],
+    onSelectConcern,
+    onSelectAll
 }) => {
     if (!concerns || concerns.length === 0) {
         return (
@@ -46,11 +50,25 @@ const ConcernTable = ({
         return (currentPage - 1) * itemsPerPage + index + 1;
     };
 
+    // Check if all items are selected
+    const allSelected = concerns.length > 0 && selectedConcerns.length === concerns.length;
+
     return (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto">
             <table className="min-w-full w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
+                        {/* Checkbox Column - Only show in select mode */}
+                        {isSelectMode && (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={(e) => onSelectAll && onSelectAll(e.target.checked ? concerns.map(c => c._id) : [])}
+                                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                                />
+                            </th>
+                        )}
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             #
                         </th>
@@ -101,6 +119,18 @@ const ConcernTable = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                     {concerns.map((concern, index) => (
                         <tr key={concern._id} className="hover:bg-gray-50 transition-colors">
+                            {/* Checkbox Column - Only show in select mode */}
+                            {isSelectMode && (
+                                <td className="px-6 py-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedConcerns.includes(concern._id)}
+                                        onChange={() => onSelectConcern && onSelectConcern(concern._id)}
+                                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                                    />
+                                </td>
+                            )}
+                            
                             {/* Row Number Column */}
                             <td className="px-6 py-4 text-sm text-gray-500">
                                 {getRowNumber(index)}

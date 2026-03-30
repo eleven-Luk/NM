@@ -7,7 +7,7 @@ import JobCard from "../../components/JobCard.jsx";
 import AddJobModal from "../../components/modals/NM/jobs/AddJobModal.jsx";
 import ViewJobModal from "../../components/modals/NM/jobs/ViewJobModal.jsx";
 import EditJobModal from "../../components/modals/NM/jobs/EditJobModal.jsx";
-import SoftDeleteModal from "../../components/modals/NM/jobs/SoftDeleteModal.jsx";
+import MoveToArchiveModal from "../../components/modals/NM/jobs/MoveToArchiveModal.jsx";
 
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -48,7 +48,7 @@ function NMJobs(){
     const [showAddJobModal, setShowAddJobModal] = useState(false);
     const [showViewJobModal, setShowViewJobModal] = useState(false);
     const [showEditJobModal, setShowEditJobModal] = useState(false);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showArchiveModal, setShowArchiveModal] = useState(false);
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
@@ -102,16 +102,6 @@ function NMJobs(){
         fetchJobs();
     }, [fetchJobs]);
 
-    // Sorting handlers
-    const handleSort = (key) => {
-        const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
-        setSortConfig({ key, direction });
-    }
-
-    const getSortIcon = (key) => {
-        if (sortConfig.key !== key) return faSort;
-        return sortConfig.direction === 'asc' ? faSortUp : faSortDown;
-    };
 
     const handleAddJob = async (jobData) => {
         try {
@@ -210,6 +200,55 @@ function NMJobs(){
             setError(error.message || 'Failed to update job');
             throw error;
         }
+    };
+
+
+    const handleConfirmArchive = async () => {
+    if (selectedJob) {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('Please login first');
+                navigate('/login');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:5000/api/jobs/archive/${selectedJob._id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                    // Remove the archived job from the list
+                    setJobs(prev => prev.filter(job => job._id !== selectedJob._id));
+                    
+                    // Also remove from newJobs if it's there
+                    if (showNewJob) {
+                        setNewJobs(prev => prev.filter(job => job._id !== selectedJob._id));
+                    }
+                    
+                    setSuccessMessage('Job archived successfully!');
+                    setTimeout(() => setSuccessMessage(''), 3000);
+                    setShowArchiveModal(false);
+                    setSelectedJob(null);
+                } else {
+                    throw new Error(result.message || 'Failed to archive job');
+                }
+            } catch (error) {
+                console.error('Error archiving job:', error);
+                setError(error.message || 'Failed to archive job');
+            }
+        }
+    };
+
+    const handleArchive = (job) => {
+        setSelectedJob(job);
+        setShowArchiveModal(true);
     };
 
     const handleSearch = (e) => {
@@ -522,10 +561,9 @@ function NMJobs(){
                                     setSelectedJob(job);
                                     setShowEditJobModal(true);
                                 }}
-                                onDelete={() => {
-                                    setSelectedJob(job);
-                                    setShowDeleteModal(true);
-                                }}
+                                onArchive={() => 
+                                    handleArchive(job)
+                                }
                             />
                         ))}
                     </div>
@@ -590,12 +628,15 @@ function NMJobs(){
                 job={selectedJob} 
             />
             
-            <SoftDeleteModal 
-                isOpen={showDeleteModal} 
-                onClose={() => { setShowDeleteModal(false); 
-                setSelectedJob(null); }} 
-                onDeleteSuccess={handleDeleteSuccess} 
+            <MoveToArchiveModal 
+                isOpen={showArchiveModal} 
+                onClose={() => { 
+                    setShowArchiveModal(false); 
+                    setSelectedJob(null); 
+                }} 
+                onConfirm={handleConfirmArchive} 
                 job={selectedJob} 
+                loading={false}
             />
         </div>
     );

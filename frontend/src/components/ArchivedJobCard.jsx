@@ -1,20 +1,18 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { 
     faEye,
-    faEdit,
     faTrash,
     faMapMarkerAlt,
     faClock,
     faBriefcase,
     faDollarSign,
-    faCheckCircle,
     faBan,
     faUndo,
-    faHourglassHalf,
     faArchive,
+    faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons';
 
-function JobCard ({job, onView, onEdit, onArchive}) {     
+function ArchivedJobCard({ job, onView, onRestore, onDelete }) {     
 
     const handleView = (e) => {
         e.stopPropagation();
@@ -23,17 +21,17 @@ function JobCard ({job, onView, onEdit, onArchive}) {
         }
     };
 
-    const handleEdit = (e) => {
+    const handleRestore = (e) => {
         e.stopPropagation();
-        if (onEdit) {
-            onEdit(job);
+        if (onRestore) {
+            onRestore(job);
         }
     };
 
-    const handleArchive = (e) => {
+    const handleDelete = (e) => {
         e.stopPropagation();
-        if (onArchive) {
-            onArchive(job);
+        if (onDelete) {
+            onDelete(job);
         }
     };
 
@@ -56,15 +54,22 @@ function JobCard ({job, onView, onEdit, onArchive}) {
         return posted.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
+    const formatArchivedDate = (date) => {
+        if (!date) return 'Recently';
+        return new Date(date).toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
+
     const formatJobType = (type) => {
         if (!type) return '';
         
-        // If it's already formatted like "Full-Time", return as is
         if (type.includes('-') || type === 'Contract' || type === 'Internship') {
             return type;
         }
         
-        // Otherwise format it
         const typeMap = {
             'fulltime': 'Full-Time',
             'parttime': 'Part-Time',
@@ -74,43 +79,9 @@ function JobCard ({job, onView, onEdit, onArchive}) {
         return typeMap[type.toLowerCase()] || type;
     };
 
-    // Get status badge styling
-    const getStatusBadge = (status) => {
-        const statusConfig = {
-            active: {
-                color: 'bg-green-100 text-green-800',
-                icon: faCheckCircle,
-                label: 'Active'
-            },
-            inactive: {
-                color: 'bg-yellow-100 text-yellow-800',
-                icon: faHourglassHalf,
-                label: 'Inactive'
-            },
-            deleted: {
-                color: 'bg-red-100 text-red-800',
-                icon: faBan,
-                label: 'Deleted'
-            },
-            closed: {
-                color: 'bg-gray-100 text-gray-800',
-                icon: faBan,
-                label: 'Closed'
-            },
-            archived: {
-                color: 'bg-gray-100 text-gray-800',
-                icon: faBan,
-                label: 'Archived'
-            }
-        };
-        return statusConfig[status?.toLowerCase()] || statusConfig.active;
-    };
-
-    const statusConfig = getStatusBadge(job.status);
-
     return (
         <div 
-            className="bg-white border border-gray-200 hover:border-orange-400 hover:shadow-lg transition-all duration-300 rounded-xl overflow-hidden"
+            className="bg-white border border-gray-200 hover:border-gray-400 hover:shadow-lg transition-all duration-300 rounded-xl overflow-hidden opacity-90"
         >
             <div className="p-6">
                 {/* Header with title and type */}
@@ -122,10 +93,10 @@ function JobCard ({job, onView, onEdit, onArchive}) {
                         <span className="text-xs px-3 py-1 bg-orange-50 text-orange-600 rounded-full whitespace-nowrap">
                             {formatJobType(job.type)}
                         </span>
-                        {/* Status Badge */}
-                        <span className={`text-xs px-3 py-1 rounded-full whitespace-nowrap flex items-center gap-1 ${statusConfig.color}`}>
-                            <FontAwesomeIcon icon={statusConfig.icon} className="text-xs" />
-                            {statusConfig.label}
+                        {/* Archived Badge */}
+                        <span className="text-xs px-3 py-1 rounded-full whitespace-nowrap flex items-center gap-1 bg-gray-100 text-gray-600">
+                            <FontAwesomeIcon icon={faArchive} className="text-xs" />
+                            Archived
                         </span>
                     </div>
                 </div>
@@ -138,13 +109,23 @@ function JobCard ({job, onView, onEdit, onArchive}) {
                     </span>
                     <span className="flex items-center gap-1">
                         <FontAwesomeIcon icon={faClock} className="text-orange-400" />
-                        {formatDate(job.createdAt)}
+                        Posted: {formatDate(job.createdAt)}
                     </span>
                     <span className="flex items-center gap-1">
                         <FontAwesomeIcon icon={faBriefcase} className="text-orange-400" />
                         ID: #{job._id?.slice(-4)}
                     </span>
                 </div>
+
+                {/* Archived Date */}
+                {job.archivedAt && (
+                    <div className="mb-3">
+                        <span className="text-xs text-gray-500 flex items-center gap-1">
+                            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+                            Archived: {formatArchivedDate(job.archivedAt)}
+                        </span>
+                    </div>
+                )}
 
                 {/* Salary highlight */}
                 <div className="mb-4">
@@ -159,7 +140,7 @@ function JobCard ({job, onView, onEdit, onArchive}) {
                     {job.description || 'No description available'}
                 </p>
                 
-                {/* Action Buttons */}
+                {/* Action Buttons - Only View, Restore, and Delete */}
                 <div className="flex flex-row gap-2">
                     <button 
                         onClick={handleView}
@@ -169,18 +150,18 @@ function JobCard ({job, onView, onEdit, onArchive}) {
                         View
                     </button>
                     <button 
-                        onClick={handleEdit}
-                        className="flex-1 py-2.5 text-sm text-gray-500 hover:text-blue-600 border border-gray-200 rounded-lg hover:border-blue-400 transition-all flex items-center justify-center gap-2"
+                        onClick={handleRestore}
+                        className="flex-1 py-2.5 text-sm text-gray-500 hover:text-green-600 border border-gray-200 rounded-lg hover:border-green-400 transition-all flex items-center justify-center gap-2"
                     >
-                        <FontAwesomeIcon icon={faEdit} className="text-xs" />
-                        Edit
+                        <FontAwesomeIcon icon={faUndo} className="text-xs" />
+                        Restore
                     </button>
                     <button 
-                        onClick={handleArchive}
-                        className="flex-1 py-2.5 text-sm text-gray-500 hover:text-gray-600 border border-gray-200 rounded-lg hover:border-gray-400 transition-all flex items-center justify-center gap-2"
+                        onClick={handleDelete}
+                        className="flex-1 py-2.5 text-sm text-gray-500 hover:text-red-600 border border-gray-200 rounded-lg hover:border-red-400 transition-all flex items-center justify-center gap-2"
                     >
-                        <FontAwesomeIcon icon={faArchive} className="text-xs" />
-                        Archive
+                        <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                        Delete
                     </button>
                 </div>
             </div>
@@ -188,4 +169,4 @@ function JobCard ({job, onView, onEdit, onArchive}) {
     );
 }
 
-export default JobCard;
+export default ArchivedJobCard;

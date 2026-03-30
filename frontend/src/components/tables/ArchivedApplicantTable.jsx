@@ -23,7 +23,11 @@ const ArchivedApplicantTable = ({
     updatingId,
     StatusBadge,
     currentPage = 1,
-    itemsPerPage = 10
+    itemsPerPage = 10,
+    isSelectMode = false,
+    selectedApplications = [],
+    onSelectApplication,
+    onSelectAll
 }) => {
     if (applicants.length === 0) {
         return (
@@ -55,12 +59,24 @@ const ArchivedApplicantTable = ({
         return (currentPage - 1) * itemsPerPage + index + 1;
     };
 
+    const allSelected = applicants.length > 0 && selectedApplications.length === applicants.length;
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
+                        {/* Checkbox Column - Only show in select mode */}
+                        {isSelectMode && (
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input
+                                    type="checkbox"
+                                    checked={allSelected}
+                                    onChange={(e) => onSelectAll && onSelectAll(e.target.checked ? applicants.map(a => a._id) : [])}
+                                    className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                                />
+                            </th>
+                        )}
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             #
                         </th>
@@ -111,6 +127,17 @@ const ArchivedApplicantTable = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                     {applicants.map((applicant, index) => (
                         <tr key={applicant._id} className="hover:bg-gray-50 transition-colors">
+                            {/* Checkbox Column - Only show in select mode */}
+                            {isSelectMode && (
+                                <td className="px-6 py-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedApplications.includes(applicant._id)}
+                                        onChange={() => onSelectApplication && onSelectApplication(applicant._id)}
+                                        className="rounded border-gray-300 text-orange-500 focus:ring-orange-400"
+                                    />
+                                </td>
+                            )}
                             <td className="px-6 py-4 text-sm text-gray-500">
                                 {getRowNumber(index)}
                             </td>
@@ -123,7 +150,7 @@ const ArchivedApplicantTable = ({
                                     </div>
                                     <div className="ml-4">
                                         <div className="text-sm font-medium text-gray-900">
-                                            {applicant.firstName} {applicant.lastName}
+                                            {applicant.firstName} {applicant.middleName || ''} {applicant.lastName}
                                         </div>
                                     </div>
                                 </div>
@@ -182,7 +209,7 @@ const ArchivedApplicantTable = ({
                                         <span className="text-xs text-blue-500 animate-pulse">Restoring...</span>
                                     )}
                                     <button
-                                        onClick={() => onDelete &&onDelete(applicant)}
+                                        onClick={() => onDelete && onDelete(applicant)}
                                         className="text-red-600 hover:text-red-900 p-1 hover:bg-red-50 rounded transition-colors"
                                         title="Delete Application"
                                         disabled={updatingId === applicant._id}

@@ -152,115 +152,11 @@ export const getViewJob = async (req, res) => {
     }
 }
 
-// Soft Delete Job
-export const softDeleteJob = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const deletedJob = await Job.findByIdAndUpdate(id,
-            {
-                deletedAt: new Date(),
-                status: 'deleted'
-            },
-            { new : true }
-         );
-
-        if (!deletedJob){
-            return res.status(404).json({
-                success: false,
-                message: 'Job not found'
-            });
-        }
-
-         res.status(200).json({
-            success: true, 
-            message: 'Job deleted successfully',
-            data: {
-                id: deletedJob._id,
-                name: deletedJob.name,
-                description: deletedJob.description,
-                type: deletedJob.type,
-                salary: deletedJob.salary,
-                location: deletedJob.location,
-            }
-         });
-
-    } catch (error) {
-        console.error('Delete Job Error: ', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error deleting job',
-        })
-    }
-}
-
-// Permanently delete job
-export const permanentlyDeleteJob = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deletedJob = await Job.findByIdAndDelete(id);
-
-        if (!deletedJob){
-            return res.status(404).json({
-                success: false,
-                message: 'Job not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Job deleted successfully',
-            data: {
-                id: deletedJob._id,
-                name: deletedJob.name,
-                description: deletedJob.description,
-                type: deletedJob.type,
-                salary: deletedJob.salary,
-                location: deletedJob.location,
-            }
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: 'Server error deleting job',
-        });
-    }
-};
-
-// Restore Job
-export const restoreJob = async (req, res) => {
-    try {
-        const { id } = req.params;
-
-        const restoredJob = await Job.findByIdAndUpdate(id, {
-            $unset: { deletedAt: ''},
-            $set: { status: 'active' }
-        }, { new: true });
-
-        res.status(200).json({
-            success: true,
-            message: 'Job restored successfully',
-            data: restoredJob
-        });
-
-    } catch (error) {
-        console.error('Restore Job Error: ', error);
-        res.status(500).json({
-            success: false,
-            message: 'Server error restoring job',
-        });
-    }
-}
 
 export const getAllJobs = async (req, res) => {
     try {
         const jobs = await Job.find({
-            $or: [
-                { deletedAt: null },               // deletedAt is null
-                { deletedAt: { $exists: false } }, // OR no deletedAt field
-                { status: { $ne: 'deleted' } }     // OR status is not 'deleted'
-            ]
+            status: { $ne: 'archived' }
         }).sort({ createdAt: -1 });
 
         res.json({
@@ -277,3 +173,185 @@ export const getAllJobs = async (req, res) => {
         });
     }
 };
+
+export const moveToArchive = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+        
+        // Validation
+        if (!jobId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Job ID is required'
+            });
+        }
+
+        const now = new Date();
+
+        const movedJob = await Job.findByIdAndUpdate(
+            jobId,
+            {
+                archivedAt: now,
+                status: 'archived'
+            },
+            { new: true }
+        );
+
+        if (!movedJob){
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Job moved to archive successfully',
+            data: {
+                id: movedJob._id,
+                name: movedJob.name,
+                status: movedJob.status,
+                archivedAt: movedJob.archivedAt,
+            }
+        });
+ } catch (error) {
+        console.error('Move to Archive Error: ', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error moving job to archive',
+        });
+    }
+}
+
+export const getArchivedJobs = async (req, res) => {
+    try {
+        const archivedJobs = await Job.find({ 
+            status: 'archived' })
+            .sort({ archivedAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            message: 'Archived jobs retrieved successfully',
+            data: archivedJobs,
+            count: archivedJobs.length,
+        });
+
+    } catch (error) {
+         console.error('Get Archived Jobs Error: ', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const restoreJob = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+
+        if (!jobId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Job ID is required'
+            });
+        }
+        
+        const restoredJob = await Job.findByIdAndUpdate(
+            jobId, {
+                $unset: { deletedAt: ''},
+                status: 'pending',
+            },
+            { new: true }
+        );
+        
+        if (!restoredJob) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Job restored successfully',
+            data: restoredJob
+        });
+        
+    } catch (error) {
+        console.error('Restore Job Error: ', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
+    }
+}
+
+export const viewArchivedJob = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+
+        if (!jobId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Job ID is required'
+            });
+        }
+
+        const job = await Job.findById(jobId);
+
+        if (!job) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+
+        if (job.status !== 'archived') {
+            return res.status(400).json({
+                success: false,
+                message: 'This job is not archived'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Archived job retrieved successfully',
+            data: job
+        });
+
+    } catch (error) {
+        console.error('View Archived Job Error: ', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+};
+
+export const deleteArchivedJob = async (req, res) => {
+    try {
+        const { jobId } = req.params;
+
+        const deletedJob = await Job.findByIdAndDelete(jobId);
+
+        if (!deletedJob) {
+            return res.status(404).json({
+                success: false,
+                message: 'Job not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Archived job deleted permanently',    
+            data: deletedJob
+        });
+    } catch (error) {
+        console.error('Delete Archived Job Error: ', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
+    }
+}

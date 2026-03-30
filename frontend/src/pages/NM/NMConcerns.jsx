@@ -14,7 +14,10 @@ import {
     faAngleDoubleRight, 
     faFire,
     faTrashAlt,
-    faEye,         
+    faEye,
+    faCheckSquare,
+    faSquare,
+    faTrash  
 } from '@fortawesome/free-solid-svg-icons';
 import ConcernTable from "../../components/tables/ConcernTable";
 import FilterBar from "../../components/common/FilterBar";
@@ -42,6 +45,12 @@ function NMConcerns(){
     const [updatingId, setUpdatingId] = useState(null);
     const [selectedConcern, setSelectedConcern] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+
+    // Bulk delete states
+    const [selectedConcerns, setSelectedConcerns] = useState([]);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
     // Filter states
     const [searchTerm, setSearchTerm] = useState('');
@@ -199,6 +208,114 @@ function NMConcerns(){
             setDeleteLoading(false);
         }
     };
+
+    // Bulk delete functions
+    const handleSelectConcern = (concernId) => {
+        setSelectedConcerns(prev => 
+            prev.includes(concernId) 
+                ? prev.filter(id => id !== concernId)
+                : [...prev, concernId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedConcerns.length === currentItems.length) {
+            setSelectedConcerns([]);
+        } else {
+            setSelectedConcerns(currentItems.map(concern => concern._id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedConcerns.length === 0) {
+            setError('Please select at least one concern to delete');
+            return;
+        }
+
+        setBulkDeleteLoading(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('No token found. Please log in.');
+                navigate('/login');
+                return;
+            }
+
+            // Delete each selected concern
+            for (const concernId of selectedConcerns) {
+                try {
+                    const response = await fetch(`http://localhost:5000/api/concerns/delete/${concernId}`, {
+                        method: 'DELETE',
+                        headers: { 
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to delete concern ${concernId}:`, result.message);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`Error deleting concern ${concernId}:`, error);
+                }
+            }
+
+            // Update the concerns list
+            setConcerns(prev => prev.filter(concern => !selectedConcerns.includes(concern._id)));
+            
+            if (showNewConcern) {
+                setNewConcerns(prev => prev.filter(concern => !selectedConcerns.includes(concern._id)));
+            }
+
+            // Show success message
+            if (successCount > 0) {
+                setSuccessMessage(`Successfully deleted ${successCount} concern(s). ${errorCount > 0 ? `Failed to delete ${errorCount} concern(s).` : ''}`);
+                setTimeout(() => setSuccessMessage(''), 5000);
+            } else {
+                setError(`Failed to delete ${errorCount} concern(s). Please try again.`);
+            }
+
+            // Clear selections and exit select mode
+            setSelectedConcerns([]);
+            setIsSelectMode(false);
+            setShowBulkDeleteModal(false);
+
+            // Adjust pagination if needed
+            const remainingItems = filteredConcerns.length - successCount;
+            const newTotalPages = Math.ceil(remainingItems / itemsPerPage);
+            if (currentPage > newTotalPages && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            }
+
+        } catch (error) {
+            console.error('Error during bulk delete:', error);
+            setError('Failed to delete selected concerns. Please try again.');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (selectedConcerns.length === 0) {
+            setError('Please select at least one concern to delete');
+            return;
+        }
+        setShowBulkDeleteModal(true);
+    };
+
+    const handleExitSelectMode = () => {
+        setIsSelectMode(false);
+        setSelectedConcerns([]);
+    };
         
     const handleEdit = (concern) => {
         setSelectedConcern(concern);
@@ -279,6 +396,7 @@ function NMConcerns(){
     const handleSearch = (e) => {
         setSearchTerm(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
 
         if (showNewConcern) {
             setShowNewConcern(false);
@@ -289,6 +407,7 @@ function NMConcerns(){
     const handleStatusFilter = (e) => {
         setStatusFilter(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
 
         if (showNewConcern) {
             setShowNewConcern(false);
@@ -299,6 +418,7 @@ function NMConcerns(){
     const handleInquiryFilter = (e) => {
         setInquiryFilter(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
 
         if (showNewConcern) {
             setShowNewConcern(false);
@@ -316,6 +436,7 @@ function NMConcerns(){
         setSearchTerm('');
         setCurrentPage(1);
         setInquiryFilter('all');
+        handleExitSelectMode();
     };
 
     const clearFilters = () => {
@@ -325,6 +446,7 @@ function NMConcerns(){
         setShowNewConcern(false);
         setNewConcerns([]);
         setCurrentPage(1);
+        handleExitSelectMode();
     };
 
     const statusOptions = [
@@ -463,6 +585,49 @@ function NMConcerns(){
                 </div>
             </header>
 
+            {/* Bulk Actions Bar */}
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {!isSelectMode ? (
+                        <button
+                            onClick={() => setIsSelectMode(true)}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center gap-2"
+                        >
+                            <FontAwesomeIcon icon={faCheckSquare} />
+                            Select Multiple
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleSelectAll}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center gap-2"
+                            >
+                                <FontAwesomeIcon icon={selectedConcerns.length === currentItems.length ? faCheckSquare : faSquare} />
+                                {selectedConcerns.length === currentItems.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                            <button
+                                onClick={handleBulkDeleteClick}
+                                disabled={selectedConcerns.length === 0}
+                                className={`px-4 py-2 text-sm border rounded-lg transition-colors flex items-center gap-2 ${
+                                    selectedConcerns.length > 0
+                                        ? 'border-red-300 text-red-600 hover:bg-red-50 hover:border-red-500'
+                                        : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                <FontAwesomeIcon icon={faTrash} />
+                                Delete Selected ({selectedConcerns.length})
+                            </button>
+                            <button
+                                onClick={handleExitSelectMode}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+
             {/* Filter Bar */}
             <FilterBar
                 searchTerm={searchTerm}
@@ -506,6 +671,9 @@ function NMConcerns(){
                 updatingId={updatingId}
                 currentPage={currentPage}
                 itemsPerPage={itemsPerPage}
+                isSelectMode={isSelectMode}
+                selectedConcerns={selectedConcerns}
+                onSelectConcern={handleSelectConcern}
             />
 
             {/* Pagination Controls */}
@@ -595,7 +763,7 @@ function NMConcerns(){
                 onSave={handleSaveEdit}
             />
 
-            {/* Delete Confirmation Modal */}
+            {/* Delete Confirmation Modal (Single) */}
             <DeleteConfirmModal
                 isOpen={showDeleteModalOpen}
                 onClose={() => {
@@ -607,6 +775,17 @@ function NMConcerns(){
                 title="Delete Concern"
                 subtitle="Are you sure you want to delete this concern permanently?"
                 loading={deleteLoading}
+            />
+
+            {/* Bulk Delete Confirmation Modal */}
+            <DeleteConfirmModal
+                isOpen={showBulkDeleteModal}
+                onClose={() => setShowBulkDeleteModal(false)}
+                onConfirm={handleBulkDelete}
+                item={null}
+                title="Bulk Delete Concerns"
+                subtitle={`Are you sure you want to delete ${selectedConcerns.length} concern(s) permanently? This action cannot be undone.`}
+                loading={bulkDeleteLoading}
             />
         </div>
     )

@@ -30,10 +30,11 @@ import NMPrivacyPolicy from './pages/NM/NMPrivacyPolicy.jsx';
 import AboutNM from './pages/NM/AboutNM.jsx';
 import NMDashboard from './pages/NM/NMDashboard.jsx';
 import NMApplicants from './pages/NM/NMApplicants.jsx';
-import NMApplicantsArchive from './pages/NM/NMArchivedApplicants.jsx';
+import NMArchivedApplicants from './pages/NM/NMArchivedApplicants.jsx';
 import NMJobs from './pages/NM/NMJobs.jsx';
 import NMConcerns from './pages/NM/NMConcerns.jsx';
 import Jobs from './pages/NM/Jobs.jsx';
+import NMArchivedJobs from './pages/NM/NMArchivedJob.jsx';
 
 
 
@@ -116,11 +117,15 @@ const router = createBrowserRouter([
       },
       {
         path: 'applicants/archived',
-        element: <NMApplicantsArchive />
+        element: <NMArchivedApplicants />
       },
       {
         path: 'jobs',
         element: <NMJobs />
+      },
+      {
+        path: 'jobs/archived',
+        element: <NMArchivedJobs />
       },
       {
         path: 'concerns',

@@ -1,279 +1,390 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
     faBriefcase,
-    faSearch,
-    faFilter,
-    faTimes,
     faMapMarkerAlt,
     faClock,
     faMoneyBillWave,
-    faLanguage,
     faBuilding,
-    faCalendarAlt,
     faBookmark,
     faShare,
-    faInfoCircle,
     faChevronLeft,
-    faChevronRight
+    faChevronRight,
+    faAngleDoubleRight,
+    faAngleDoubleLeft,
+    faFire,
+    faTimes,
+    faCalendarAlt,
+    faTag,
+    faUsers,
+    faChartLine,
+    faGlobe,
+    faLaptop,
+    faHome,
+    faCheckCircle,
+    faBan
 } from '@fortawesome/free-solid-svg-icons';
 
-import bgImg from '../../assets/NM.png'
+import NMContactModal from '../../components/modals/NMContactModal';
+import LoadingSpinner from '../../components/common/LoadingSpinner';
+import FilterBar from '../../components/common/FilterBar';
+
+import bgImg from '../../assets/NM.png';
 
 function Jobs() {
-    const [selectedCategory, setSelectedCategory] = useState('all');
-    const [selectedLanguage, setSelectedLanguage] = useState('all');
-    const [selectedJob, setSelectedJob] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [jobType, setJobType] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('all');
+    const [setupFilter, setSetupFilter] = useState('all');
+    const [showNewJob, setShowNewJob] = useState(false);
+    const [newJobs, setNewJobs] = useState([]);
     const [bookmarked, setBookmarked] = useState([]);
+    const [jobs, setJobs] = useState([]);
+    const [isJobModalOpen, setIsJobModalOpen] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Job listings for N&M Staffing
-    const jobs = [
-        {
-            id: 1,
-            title: "Japanese Bilingual CSR",
-            company: "IT Service Provider",
-            location: "Makati City",
-            type: "Full-time",
-            schedule: "Day shift",
-            salary: "₱45k - ₱60k",
-            language: "Japanese (N2/N1)",
-            posted: "2 days ago",
-            description: "We are looking for a Japanese bilingual Customer Service Representative to handle inquiries from Japanese clients. Must have JLPT N2 or N1 certification.",
-            requirements: [
-                "JLPT N2 or N1 certified",
-                "At least 1 year CSR experience",
-                "Excellent communication skills",
-                "Willing to work in Makati"
-            ],
-            benefits: [
-                "HMO on day 1",
-                "13th month pay",
-                "Performance bonus",
-                "Transportation allowance"
-            ],
-            featured: true
-        },
-        {
-            id: 2,
-            title: "Mandarin Speaker - Team Lead",
-            company: "BPO Company",
-            location: "BGC, Taguig",
-            type: "Full-time",
-            schedule: "Night shift",
-            salary: "₱70k - ₱90k",
-            language: "Mandarin & English",
-            posted: "Just posted",
-            description: "Leading a team of Mandarin-speaking agents. Responsible for team performance, coaching, and client communication.",
-            requirements: [
-                "Fluent in Mandarin and English",
-                "2+ years Team Lead experience",
-                "Strong leadership skills",
-                "College graduate preferred"
-            ],
-            benefits: [
-                "Competitive salary package",
-                "Night differential",
-                "Health insurance",
-                "Annual leave"
-            ],
-            featured: true
-        },
-        {
-            id: 3,
-            title: "Korean Bilingual Recruiter",
-            company: "Global HR Firm",
-            location: "Pasay City",
-            type: "Hybrid",
-            schedule: "Day shift",
-            salary: "₱50k - ₱65k",
-            language: "Korean (TOPIK 5+)",
-            posted: "1 week ago",
-            description: "Recruit Korean-speaking professionals for various industries. End-to-end recruitment process.",
-            requirements: [
-                "TOPIK Level 5 or higher",
-                "Recruitment experience preferred",
-                "Strong interpersonal skills",
-                "Can work hybrid setup"
-            ],
-            benefits: [
-                "Hybrid work arrangement",
-                "Performance incentives",
-                "Career growth opportunities",
-                "Government benefits"
-            ],
-            featured: false
-        },
-        {
-            id: 4,
-            title: "Spanish Voice Agent",
-            company: "Telecom Company",
-            location: "Clark, Pampanga",
-            type: "Full-time",
-            schedule: "Night shift",
-            salary: "₱40k - ₱55k",
-            language: "Spanish (Fluent)",
-            posted: "3 days ago",
-            description: "Handle inbound calls from Spanish-speaking customers. Provide excellent customer service and support.",
-            requirements: [
-                "Fluent in Spanish (oral and written)",
-                "Good English communication",
-                "Customer service experience",
-                "Willing to work in Clark"
-            ],
-            benefits: [
-                "Free shuttle service",
-                "Meal allowance",
-                "Night differential",
-                "Performance bonus"
-            ],
-            featured: true
-        },
-        {
-            id: 5,
-            title: "French Translator",
-            company: "International NGO",
-            location: "Remote (PH)",
-            type: "Project-based",
-            schedule: "Flexible",
-            salary: "₱35k - ₱50k",
-            language: "French & English",
-            posted: "5 days ago",
-            description: "Translate documents from French to English and vice versa. Work remotely on various projects.",
-            requirements: [
-                "Native or fluent French",
-                "Translation experience",
-                "Attention to detail",
-                "Can work independently"
-            ],
-            benefits: [
-                "Remote work",
-                "Flexible hours",
-                "Project-based pay",
-                "International exposure"
-            ],
-            featured: false
-        },
-        {
-            id: 6,
-            title: "Cantonese Support Specialist",
-            company: "Financial Services",
-            location: "Ortigas, Pasig",
-            type: "Full-time",
-            schedule: "Day shift",
-            salary: "₱55k - ₱75k",
-            language: "Cantonese",
-            posted: "Just posted",
-            description: "Provide customer support to Cantonese-speaking clients in the financial sector.",
-            requirements: [
-                "Fluent in Cantonese",
-                "Financial background is a plus",
-                "College graduate",
-                "Good problem-solving skills"
-            ],
-            benefits: [
-                "Sign-on bonus",
-                "HMO with dependents",
-                "Annual performance review",
-                "Career advancement"
-            ],
-            featured: true
-        },
-        {
-            id: 7,
-            title: "Vietnamese Interpreter",
-            company: "Medical BPO",
-            location: "Quezon City",
-            type: "Full-time",
-            schedule: "Shifting",
-            salary: "₱45k - ₱58k",
-            language: "Vietnamese & English",
-            posted: "1 week ago",
-            description: "Provide interpretation services for medical consultations between Vietnamese patients and healthcare providers.",
-            requirements: [
-                "Fluent in Vietnamese and English",
-                "Medical background preferred",
-                "Interpretation experience",
-                "Empathetic and professional"
-            ],
-            benefits: [
-                "Health insurance",
-                "Paid training",
-                "Allowances",
-                "Retirement plan"
-            ],
-            featured: false
-        },
-        {
-            id: 8,
-            title: "German Content Moderator",
-            company: "Social Media Platform",
-            location: "Remote (PH)",
-            type: "Full-time",
-            schedule: "Shifting",
-            salary: "₱60k - ₱80k",
-            language: "German (C1)",
-            posted: "2 weeks ago",
-            description: "Review and moderate content for a global social media platform. Must be fluent in German.",
-            requirements: [
-                "German C1 level or higher",
-                "Tech-savvy",
-                "Attention to detail",
-                "Can work remotely"
-            ],
-            benefits: [
-                "Work from home",
-                "Equipment provided",
-                "Internet allowance",
-                "Global team experience"
-            ],
-            featured: true
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 6;
+
+    // Filter options
+    const typeOptions = [
+        { value: 'Full-Time', label: 'Full-time' },
+        { value: 'Part-Time', label: 'Part-time' },
+        { value: 'Contract', label: 'Contract' },
+        { value: 'Internship', label: 'Internship' },
+    ];
+
+    const setupOptions = [
+        { value: 'onsite', label: 'Onsite' },
+        { value: 'hybrid', label: 'Hybrid' },
+        { value: 'remote', label: 'Remote' },
+    ];
+
+    useEffect(() => {
+        const fetchJobs = async () => {
+            setLoading(true);
+            setError(null);
+            
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch('http://localhost:5000/api/jobs/all', {
+                    headers: {
+                        'Authorization': token ? `Bearer ${token}` : '',
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const result = await response.json();
+
+                if (result.success) {
+                    // Filter out closed and archived jobs from the main display
+                    const activeJobs = (result.data || []).filter(job => 
+                        job.status !== 'closed' && job.status !== 'archived'
+                    );
+                    const sortedJobs = activeJobs.sort((a, b) => 
+                        new Date(b.createdAt) - new Date(a.createdAt)
+                    );
+                    setJobs(sortedJobs);
+                } else {
+                    throw new Error(result.message || 'Failed to fetch jobs');
+                }
+                
+            } catch (error) {
+                console.error('Error fetching jobs:', error);
+                setError('Failed to load job listings. Please try again later.');
+            } finally {
+                setLoading(false);
+            }
+        };
+        
+        fetchJobs();
+    }, []);
+
+    // Get status badge styling
+    const getStatusBadge = (status) => {
+        const statusConfig = {
+            active: {
+                color: 'bg-green-100 text-green-800',
+                icon: faCheckCircle,
+                label: 'Active'
+            },
+            inactive: {
+                color: 'bg-yellow-100 text-yellow-800',
+                icon: faClock,
+                label: 'Inactive'
+            },
+            closed: {
+                color: 'bg-red-100 text-red-800',
+                icon: faBan,
+                label: 'Closed'
+            },
+            archived: {
+                color: 'bg-gray-100 text-gray-800',
+                icon: faBan,
+                label: 'Archived'
+            }
+        };
+        return statusConfig[status?.toLowerCase()] || statusConfig.active;
+    };
+
+    // Format date function
+    const formatPostedDate = (dateString) => {
+        if (!dateString) return 'Recently';
+        const now = new Date();
+        const posted = new Date(dateString);
+        const diffDays = Math.floor((now - posted) / (1000 * 60 * 60 * 24));
+        
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+        return posted.toLocaleDateString();
+    };
+
+    // Format job type for display
+    const formatJobType = (type) => {
+        const typeMap = {
+            'fulltime': 'Full-Time',
+            'parttime': 'Part-Time',
+            'contract': 'Contract',
+            'internship': 'Internship',
+            'Full-Time': 'Full-Time',
+            'Part-Time': 'Part-Time',
+            'Contract': 'Contract',
+            'Internship': 'Internship'
+        };
+        return typeMap[type] || type || 'Full-Time';
+    };
+
+    // Get work setup icon
+    const getSetupIcon = (location) => {
+        const loc = location?.toLowerCase() || '';
+        if (loc.includes('remote')) return faLaptop;
+        if (loc.includes('hybrid')) return faGlobe;
+        return faBuilding;
+    };
+
+    // Get work setup label
+    const getSetupLabel = (location) => {
+        const loc = location?.toLowerCase() || '';
+        if (loc.includes('remote')) return 'Remote';
+        if (loc.includes('hybrid')) return 'Hybrid';
+        return 'Onsite';
+    };
+
+    // Handle apply button click - only for active jobs
+    const handleApplyClick = (job) => {
+        // Check if job is active before allowing application
+        if (job.status !== 'active') {
+            alert('This job is currently inactive and not accepting applications.');
+            return;
         }
-    ];
-
-    const categories = [
-        { id: 'all', name: 'All Jobs', count: jobs.length },
-        { id: 'full-time', name: 'Full Time', count: jobs.filter(j => j.type === 'Full-time').length },
-        { id: 'hybrid', name: 'Hybrid', count: jobs.filter(j => j.type === 'Hybrid').length },
-        { id: 'project-based', name: 'Project Based', count: jobs.filter(j => j.type === 'Project-based').length },
-        { id: 'remote', name: 'Remote', count: jobs.filter(j => j.location.includes('Remote')).length }
-    ];
-
-    const languages = [
-        { id: 'all', name: 'All Languages' },
-        { id: 'japanese', name: 'Japanese' },
-        { id: 'mandarin', name: 'Mandarin' },
-        { id: 'korean', name: 'Korean' },
-        { id: 'spanish', name: 'Spanish' },
-        { id: 'french', name: 'French' },
-        { id: 'cantonese', name: 'Cantonese' },
-        { id: 'vietnamese', name: 'Vietnamese' },
-        { id: 'german', name: 'German' }
-    ];
-
-    // Filter jobs based on category, search, and language
-    const filteredJobs = jobs.filter(job => {
-        const matchesCategory = selectedCategory === 'all' || 
-            (selectedCategory === 'remote' && job.location.includes('Remote')) ||
-            job.type.toLowerCase() === selectedCategory;
-
-        const matchesLanguage = selectedLanguage === 'all' || 
-            job.language.toLowerCase().includes(selectedLanguage.toLowerCase());
-
         
-        const matchesSearch = searchTerm === '' ||
-                            job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            job.language.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!job || !job._id) {
+            console.error('Invalid job selection:', job);
+            alert('Invalid job selection. Please try again.');
+            return;
+        }
         
-        return matchesCategory && matchesSearch && matchesLanguage;
-    });
+        console.log('Applying for job:', job.name);
+        setSelectedJob(job);
+        setIsJobModalOpen(true);
+    };
 
+    // Toggle bookmark
+    const toggleBookmark = (jobId) => {
+        setBookmarked(prev => 
+            prev.includes(jobId) 
+                ? prev.filter(id => id !== jobId)
+                : [...prev, jobId]
+        );
+    };
 
+    // Filter handlers
+    const handleSearch = (e) => {
+        setSearchTerm(e.target.value);
+        setCurrentPage(1);
+        if (showNewJob) {
+            setShowNewJob(false);
+            setNewJobs([]);
+        }
+    };
 
-    const featuredJobs = jobs.filter(j => j.featured).slice(0, 3);
+    const handleType = (e) => {
+        setTypeFilter(e.target.value);
+        setCurrentPage(1);
+        if (showNewJob) {
+            setShowNewJob(false);
+            setNewJobs([]);
+        }
+    };
+
+    const handleSetup = (e) => {
+        setSetupFilter(e.target.value);
+        setCurrentPage(1);
+        if (showNewJob) {
+            setShowNewJob(false);
+            setNewJobs([]);
+        }
+    };
+
+    const identifyNewJobs = () => {
+        const recent = [...jobs].sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0);
+            const dateB = new Date(b.createdAt || 0);
+            return dateB - dateA;
+        }).slice(0, 3);
+        setNewJobs(recent);
+        setShowNewJob(true);
+        setSearchTerm('');
+        setTypeFilter('all');
+        setSetupFilter('all');
+        setCurrentPage(1);
+    };
+
+    const clearFilters = () => {
+        setSearchTerm('');
+        setTypeFilter('all');
+        setSetupFilter('all');
+        setShowNewJob(false);
+        setNewJobs([]);
+        setCurrentPage(1);
+    };
+
+    // Filter jobs based on search, type, setup, and new jobs
+    const getDisplayJobs = () => {
+        let displayJobs = [...jobs];
+
+        // Apply search filter
+        if (searchTerm) {
+            displayJobs = displayJobs.filter(job => 
+                job.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                job.salary?.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+        }
+
+        // Apply type filter
+        if (typeFilter !== 'all') {
+            displayJobs = displayJobs.filter(job => job.type === typeFilter);
+        }
+        
+        // Apply setup filter
+        if (setupFilter !== 'all') {
+            displayJobs = displayJobs.filter(job => {
+                const location = job.location?.toLowerCase() || '';
+                if (setupFilter === 'onsite') {
+                    return !location.includes('remote') && !location.includes('hybrid') && location !== '';
+                }
+                if (setupFilter === 'hybrid') {
+                    return location.includes('hybrid');
+                }
+                if (setupFilter === 'remote') {
+                    return location.includes('remote');
+                }
+                return true;
+            });
+        }
+
+        // Apply new jobs filter
+        if (showNewJob) {
+            displayJobs = newJobs;
+        }
+
+        return displayJobs;
+    };
+
+    const filteredJobs = getDisplayJobs();
+
+    // Pagination
+    const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;    
+    const currentItems = filteredJobs.slice(indexOfFirstItem, indexOfLastItem);
+
+    // Navigation functions
+    const goToPage = (page) => {
+        setCurrentPage(Math.min(Math.max(1, page), totalPages));
+    }
+
+    const goToFirstPage = () => {
+        setCurrentPage(1);
+    }
+    
+    const goToLastPage = () => {
+        setCurrentPage(totalPages);
+    }
+    
+    const goToNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1);
+        }
+    }
+    
+    const goToPreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    }
+
+    // Generate Page numbers to display
+    const getPageNumbers = () => {
+        const maxButtons = 5;
+        const pages = [];
+        const half = Math.floor(maxButtons / 2);
+        let start = Math.max(1, currentPage - half);
+        let end = Math.min(totalPages, start + maxButtons - 1);
+        
+        if (end - start + 1 < maxButtons) {
+            start = Math.max(1, end - maxButtons + 1);
+        }
+        
+        for (let i = start; i <= end; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+
+    const pageNumbers = getPageNumbers();
+    const showStartPage = pageNumbers[0] > 1;
+    const showEndPage = pageNumbers[pageNumbers.length - 1] < totalPages;
+
+    // Featured jobs (first 3 active jobs)
+    const featuredJobs = jobs.slice(0, 3);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
+                <LoadingSpinner message="Loading job opportunities..." />
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-orange-50 to-white">
+                <div className="text-center p-8 max-w-md">
+                    <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <FontAwesomeIcon icon={faTimes} className="text-red-500 text-2xl" />
+                    </div>
+                    <p className="text-red-600 mb-4">{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                    >
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className='min-h-screen bg-gradient-to-b from-orange-50 to-white'>
@@ -309,162 +420,206 @@ function Jobs() {
             {/* Featured Jobs Section */}
             {featuredJobs.length > 0 && (
                 <div className='max-w-7xl mx-auto px-4 py-12'>
-                    <h2 className='text-2xl font-light text-orange-800 mb-6'>Featured Opportunities</h2>
+                    <div className="flex items-center gap-2 mb-6">
+                        <FontAwesomeIcon icon={faFire} className="text-orange-500" />
+                        <h2 className='text-2xl font-light text-orange-800'>Featured Opportunities</h2>
+                    </div>
                     <div className='grid grid-cols-1 md:grid-cols-3 gap-6'>
-                        {featuredJobs.map(job => (
-                            <div 
-                                key={job.id}
-                                className='relative group cursor-pointer overflow-hidden rounded-xl shadow-lg bg-white border border-orange-100 hover:shadow-xl transition-all'
-                                onClick={() => setSelectedJob(job)}
-                            >
-                                <div className='p-6'>
-                                    <div className='flex items-start justify-between mb-4'>
-                                        <div>
-                                            <h3 className='font-medium text-orange-800 text-lg mb-1'>{job.title}</h3>
-                                            <p className='text-sm text-gray-500'>{job.company}</p>
+                        {featuredJobs.map(job => {
+                            const statusConfig = getStatusBadge(job.status);
+                            const isActive = job.status === 'active';
+                            return (
+                                <div 
+                                    key={job._id}
+                                    className='relative group cursor-pointer overflow-hidden rounded-xl shadow-lg bg-white border border-orange-100 hover:shadow-xl transition-all hover:border-orange-300'
+                                    onClick={() => setSelectedJob(job)}
+                                >
+                                    <div className='p-6'>
+                                        <div className='flex items-start justify-between mb-4'>
+                                            <div className='flex-1'>
+                                                <h3 className='font-semibold text-orange-800 text-lg mb-2 line-clamp-1'>{job.name}</h3>
+                                                <div className='flex items-center gap-2 flex-wrap'>
+                                                    <span className='inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full'>
+                                                        <FontAwesomeIcon icon={faTag} className='text-xs' />
+                                                        {formatJobType(job.type)}
+                                                    </span>
+                                                    <span className='inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full'>
+                                                        <FontAwesomeIcon icon={getSetupIcon(job.location)} className='text-xs' />
+                                                        {getSetupLabel(job.location)}
+                                                    </span>
+                                                    <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${statusConfig.color}`}>
+                                                        <FontAwesomeIcon icon={statusConfig.icon} className='text-xs' />
+                                                        {statusConfig.label}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <span className='bg-orange-500 text-white text-xs px-3 py-1 rounded-full'>
+                                                Featured
+                                            </span>
                                         </div>
-                                        <span className='bg-orange-500 text-white text-xs px-2 py-1 rounded-full'>
-                                            Featured
-                                        </span>
-                                    </div>
-                                    
-                                    <div className='space-y-2 mb-4'>
-                                        <p className='text-xs text-gray-500 flex items-center gap-2'>
-                                            <FontAwesomeIcon icon={faMapMarkerAlt} className='text-orange-400' />
-                                            {job.location}
-                                        </p>
-                                        <p className='text-xs text-gray-500 flex items-center gap-2'>
-                                            <FontAwesomeIcon icon={faClock} className='text-orange-400' />
-                                            {job.type} • {job.schedule}
-                                        </p>
-                                        <p className='text-xs text-gray-500 flex items-center gap-2'>
-                                            <FontAwesomeIcon icon={faMoneyBillWave} className='text-orange-400' />
-                                            {job.salary}
-                                        </p>
-                                        <p className='text-xs text-gray-500 flex items-center gap-2'>
-                                            <FontAwesomeIcon icon={faLanguage} className='text-orange-400' />
-                                            {job.language}
-                                        </p>
-                                    </div>
-                                    
-                                    <div className='flex items-center justify-between text-xs'>
-                                        <span className='text-orange-400'>{job.posted}</span>
-                                        <span className='text-orange-600 font-medium'>View Details →</span>
+                                        
+                                        <div className='space-y-3 mb-4'>
+                                            <p className='text-sm text-gray-600 flex items-center gap-2'>
+                                                <FontAwesomeIcon icon={faMapMarkerAlt} className='text-orange-400 w-4' />
+                                                {job.location || 'Remote'}
+                                            </p>
+                                            <p className='text-sm text-gray-600 flex items-center gap-2'>
+                                                <FontAwesomeIcon icon={faMoneyBillWave} className='text-orange-400 w-4' />
+                                                {job.salary || 'Negotiable'}
+                                            </p>
+                                            <p className='text-sm text-gray-600 flex items-center gap-2'>
+                                                <FontAwesomeIcon icon={faCalendarAlt} className='text-orange-400 w-4' />
+                                                Posted {formatPostedDate(job.createdAt)}
+                                            </p>
+                                        </div>
+                                        
+                                        <div className='flex items-center justify-between pt-3 border-t border-orange-100'>
+                                            {isActive ? (
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleApplyClick(job);
+                                                    }} 
+                                                    className='text-xs text-orange-500 hover:text-orange-600 hover:underline transition-all'
+                                                >
+                                                    Apply now
+                                                </button>
+                                            ) : (
+                                                <span className='text-xs text-gray-400 cursor-not-allowed'>
+                                                    Not accepting applications
+                                                </span>
+                                            )}
+                                            <span className='text-orange-600 font-medium text-sm group-hover:translate-x-1 transition-transform'>
+                                                View Details →
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
 
             {/* Main Jobs Section */}
             <div className='max-w-7xl mx-auto px-4 py-12'>
-                {/* Search and Filter Bar */}
-                <div className='flex flex-col md:flex-row gap-4 mb-8'>
-                    <div className='flex-1 relative'>
-                        <FontAwesomeIcon 
-                            icon={faSearch} 
-                            className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-sm'
-                        />
-                        <input
-                            type='text'
-                            placeholder='Search jobs by title, company, or language...'
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className='w-full pl-10 pr-4 py-3 bg-white border border-orange-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 text-sm'
-                        />
-                    </div>
-                    <button
-                        className='flex items-center gap-2 px-6 py-3 bg-white border border-orange-200 rounded-lg hover:bg-orange-50 transition-colors text-orange-600 text-sm'
-                    >
-                        <FontAwesomeIcon icon={faFilter} />
-                        Filter
-                    </button>
-                </div>
+                {/* Filter Bar */}
+                <FilterBar 
+                    searchTerm={searchTerm}
+                    onSearchChange={handleSearch}
+                    searchPlaceholder="Search jobs by title, location, or description..."
+                    
+                    // Type filter dropdown
+                    filterOptions={typeOptions}
+                    filterValue={typeFilter}
+                    onFilterChange={handleType}
+                    filterPlaceholder="Type of Job"
 
-                {/* Category Filters */}
-                <div className='flex flex-wrap gap-2 mb-4'>
-                    {categories.map(category => (
-                        <button
-                            key={category.id}
-                            onClick={() => setSelectedCategory(category.id)}
-                            className={`px-4 py-2 rounded-full text-sm transition-all ${
-                                selectedCategory === category.id
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-white text-orange-600 hover:bg-orange-100 border border-orange-200'
-                            }`}
-                        >
-                            {category.name} ({category.count})
-                        </button>
-                    ))}
-                </div>
-
-                {/* Language Quick Filters */}
-                <div className='flex flex-wrap gap-2 mb-8'>
-                    <span className='text-xs text-gray-400 py-2'>Languages:</span>
-                    {languages.map(language => (
-                        <button
-                            key={language.id}
-                            onClick={() => setSelectedLanguage(language.id)}
-                            className={`px-2 py-1 rounded-full text-xs transition-all ${
-                                selectedLanguage === language.id
-                                    ? 'bg-orange-500 text-white'
-                                    : 'bg-white text-orange-600 hover:bg-orange-100 border border-orange-200'
-                            }`}
-                        >
-                            {language.name}
-                        </button>
-                    ))}
-                </div>
+                    // Setup filter dropdown
+                    filterSetupOptions={setupOptions}
+                    filterSetupValue={setupFilter}
+                    onFilterSetupChange={handleSetup}
+                    filterSetupPlaceholder="Setup of Job"
+                    
+                    // New Job filter
+                    showSpecialFilter={true}
+                    specialFilterLabel="NEW JOBS"
+                    specialFilterIcon={faFire}
+                    onSpecialFilterClick={identifyNewJobs}
+                    isSpecialFilterActive={showNewJob}
+                    
+                    // Results count and refresh
+                    resultsCount={filteredJobs.length}
+                    resultsLabel="JOBS"
+                    onRefresh={() => window.location.reload()}
+                    onClearFilters={clearFilters}
+                />
 
                 {/* Jobs Grid */}
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
-                    {filteredJobs.map(job => (
-                        <div 
-                            key={job.id}
-                            className='group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-orange-100'
-                            onClick={() => setSelectedJob(job)}
-                        >
-                            <div className='p-5'>
-                                <div className='flex items-start justify-between mb-3'>
-                                    <div>
-                                        <h3 className='font-medium text-orange-800 mb-1'>{job.title}</h3>
-                                        <p className='text-xs text-gray-500 flex items-center gap-1'>
-                                            <FontAwesomeIcon icon={faBuilding} className='text-orange-400' />
-                                            {job.company}
-                                        </p>
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6'>
+                    {currentItems.map(job => {
+                        const statusConfig = getStatusBadge(job.status);
+                        const isActive = job.status === 'active';
+                        return (
+                            <div 
+                                key={job._id}
+                                className='group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all cursor-pointer border border-orange-100 hover:border-orange-300'
+                                onClick={() => setSelectedJob(job)}
+                            >
+                                <div className='p-5'>
+                                    {/* Header with title and badges */}
+                                    <div className='mb-4'>
+                                        <h3 className='font-semibold text-orange-800 text-lg mb-2 line-clamp-1'>{job.name}</h3>
+                                        <div className='flex flex-wrap gap-2'>
+                                            <span className='inline-flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-1 rounded-full'>
+                                                <FontAwesomeIcon icon={faTag} className='text-xs' />
+                                                {formatJobType(job.type)}
+                                            </span>
+                                            <span className='inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full'>
+                                                <FontAwesomeIcon icon={getSetupIcon(job.location)} className='text-xs' />
+                                                {getSetupLabel(job.location)}
+                                            </span>
+                                            <span className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${statusConfig.color}`}>
+                                                <FontAwesomeIcon icon={statusConfig.icon} className='text-xs' />
+                                                {statusConfig.label}
+                                            </span>
+                                            {bookmarked.includes(job._id) && (
+                                                <span className='inline-flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded-full'>
+                                                    <FontAwesomeIcon icon={faBookmark} className='text-xs' />
+                                                    Saved
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Job details */}
+                                    <div className='space-y-2 mb-4'>
+                                        <div className='flex items-center gap-2 text-sm text-gray-600'>
+                                            <FontAwesomeIcon icon={faMapMarkerAlt} className='text-orange-400 w-4' />
+                                            <span className='truncate'>{job.location || 'Remote'}</span>
+                                        </div>
+                                        <div className='flex items-center gap-2 text-sm text-gray-600'>
+                                            <FontAwesomeIcon icon={faMoneyBillWave} className='text-orange-400 w-4' />
+                                            <span>{job.salary || 'Negotiable'}</span>
+                                        </div>
+                                        <div className='flex items-center gap-2 text-sm text-gray-600'>
+                                            <FontAwesomeIcon icon={faCalendarAlt} className='text-orange-400 w-4' />
+                                            <span>Posted {formatPostedDate(job.createdAt)}</span>
+                                        </div>
+                                        {job.description && (
+                                            <div className='mt-2'>
+                                                <p className='text-xs text-gray-500 line-clamp-2'>
+                                                    {job.description.replace(/<[^>]*>/g, '').substring(0, 100)}...
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    {/* Footer */}
+                                    <div className='flex items-center justify-between pt-3 border-t border-orange-100'>
+                                        {isActive ? (
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleApplyClick(job);
+                                                }} 
+                                                className='text-xs text-orange-500 hover:text-orange-600 hover:underline transition-all'
+                                            >
+                                                Apply now
+                                            </button>
+                                        ) : (
+                                            <span className='text-xs text-gray-400 cursor-not-allowed'>
+                                                Not accepting applications
+                                            </span>
+                                        )}
+                                        <span className='text-orange-600 font-medium text-sm group-hover:translate-x-1 transition-transform flex items-center gap-1'>
+                                            View Details <FontAwesomeIcon icon={faChevronRight} className='text-xs' />
+                                        </span>
                                     </div>
                                 </div>
-                                
-                                <div className='space-y-2 mb-4 text-xs'>
-                                    <p className='flex items-center gap-2 text-gray-600'>
-                                        <FontAwesomeIcon icon={faMapMarkerAlt} className='text-orange-400 w-3' />
-                                        {job.location}
-                                    </p>
-                                    <p className='flex items-center gap-2 text-gray-600'>
-                                        <FontAwesomeIcon icon={faClock} className='text-orange-400 w-3' />
-                                        {job.type} • {job.schedule}
-                                    </p>
-                                    <p className='flex items-center gap-2 text-gray-600'>
-                                        <FontAwesomeIcon icon={faMoneyBillWave} className='text-orange-400 w-3' />
-                                        {job.salary}
-                                    </p>
-                                    <p className='flex items-center gap-2 text-gray-600'>
-                                        <FontAwesomeIcon icon={faLanguage} className='text-orange-400 w-3' />
-                                        {job.language}
-                                    </p>
-                                </div>
-                                
-                                <div className='flex items-center justify-between pt-3 border-t border-orange-100'>
-                                    <span className='text-xs text-orange-400'>{job.posted}</span>
-                                    <span className='text-xs text-orange-600 font-medium group-hover:underline'>
-                                        View Details →
-                                    </span>
-                                </div>
                             </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
 
                 {/* Empty State */}
@@ -475,21 +630,87 @@ function Jobs() {
                         </div>
                         <h3 className='text-lg font-medium text-orange-800 mb-2'>No jobs found</h3>
                         <p className='text-orange-500'>Try adjusting your search or filter criteria</p>
+                        <button
+                            onClick={clearFilters}
+                            className='mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm'
+                        >
+                            Clear All Filters
+                        </button>
                     </div>
                 )}
 
-                {/* Load More Button */}
-                {filteredJobs.length > 0 && (
-                    <div className='text-center mt-12'>
-                        <button className='px-8 py-3 bg-white border border-orange-300 rounded-lg text-orange-600 hover:bg-orange-50 transition-colors text-sm'>
-                            Load More Jobs
-                        </button>
+                {/* Pagination Controls */}
+                {totalPages > 1 && filteredJobs.length > 0 && (
+                    <div className="flex items-center justify-between mt-6 pt-4 border-t border-gray-200">
+                        <div className="text-sm text-gray-500">
+                            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredJobs.length)} of {filteredJobs.length} jobs
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={goToFirstPage} 
+                                disabled={currentPage === 1} 
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FontAwesomeIcon icon={faAngleDoubleLeft} className="text-xs" />
+                            </button>
+                            <button 
+                                onClick={goToPreviousPage} 
+                                disabled={currentPage === 1} 
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
+                            </button>
+
+                            <div className="flex items-center gap-1">
+                                {showStartPage && <span className="px-2 py-1.5 text-gray-400">...</span>}
+                                {pageNumbers.map(page => (
+                                    <button 
+                                        key={page} 
+                                        onClick={() => goToPage(page)} 
+                                        className={`px-3 py-1.5 border rounded-lg text-sm font-medium transition-colors ${
+                                            currentPage === page 
+                                                ? 'border-orange-500 bg-orange-500 text-white' 
+                                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                                {showEndPage && <span className="px-2 py-1.5 text-gray-400">...</span>}
+                            </div>
+
+                            <button 
+                                onClick={goToNextPage} 
+                                disabled={currentPage === totalPages} 
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
+                            </button>
+                            <button 
+                                onClick={goToLastPage} 
+                                disabled={currentPage === totalPages} 
+                                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <FontAwesomeIcon icon={faAngleDoubleRight} className="text-xs" />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
 
+            {/* Apply Modal */}
+            <NMContactModal 
+                isOpen={isJobModalOpen}
+                onClose={() => {
+                    setIsJobModalOpen(false);
+                    setSelectedJob(null);
+                }}
+                job={selectedJob}
+            />
+
             {/* Job Details Modal */}
-            {selectedJob && (
+            {selectedJob && !isJobModalOpen && (
                 <div 
                     className='fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4'
                     onClick={() => setSelectedJob(null)}
@@ -504,13 +725,13 @@ function Jobs() {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            const currentIndex = filteredJobs.findIndex(j => j.id === selectedJob.id);
+                            const currentIndex = filteredJobs.findIndex(j => j._id === selectedJob._id);
                             if (currentIndex > 0) {
                                 setSelectedJob(filteredJobs[currentIndex - 1]);
                             }
                         }}
                         className='absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-orange-300 disabled:opacity-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center'
-                        disabled={filteredJobs.findIndex(j => j.id === selectedJob.id) === 0}
+                        disabled={filteredJobs.findIndex(j => j._id === selectedJob._id) === 0}
                     >
                         <FontAwesomeIcon icon={faChevronLeft} />
                     </button>
@@ -518,13 +739,13 @@ function Jobs() {
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            const currentIndex = filteredJobs.findIndex(j => j.id === selectedJob.id);
+                            const currentIndex = filteredJobs.findIndex(j => j._id === selectedJob._id);
                             if (currentIndex < filteredJobs.length - 1) {
                                 setSelectedJob(filteredJobs[currentIndex + 1]);
                             }
                         }}
                         className='absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-orange-300 disabled:opacity-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center'
-                        disabled={filteredJobs.findIndex(j => j.id === selectedJob.id) === filteredJobs.length - 1}
+                        disabled={filteredJobs.findIndex(j => j._id === selectedJob._id) === filteredJobs.length - 1}
                     >
                         <FontAwesomeIcon icon={faChevronRight} />
                     </button>
@@ -537,14 +758,22 @@ function Jobs() {
                         <div className='bg-gradient-to-r from-orange-500 to-orange-600 p-6 text-white'>
                             <div className='flex items-start justify-between'>
                                 <div>
-                                    <h2 className='text-2xl font-bold mb-2'>{selectedJob.title}</h2>
-                                    <p className='text-orange-100'>{selectedJob.company}</p>
+                                    <h2 className='text-2xl font-bold mb-2'>{selectedJob.name}</h2>
+                                    <div className='flex flex-wrap gap-2 mt-2'>
+                                        <span className='inline-flex items-center gap-1 text-xs bg-white/20 px-3 py-1 rounded-full'>
+                                            <FontAwesomeIcon icon={faTag} className='text-xs' />
+                                            {formatJobType(selectedJob.type)}
+                                        </span>
+                                        <span className='inline-flex items-center gap-1 text-xs bg-white/20 px-3 py-1 rounded-full'>
+                                            <FontAwesomeIcon icon={getSetupIcon(selectedJob.location)} className='text-xs' />
+                                            {getSetupLabel(selectedJob.location)}
+                                        </span>
+                                        <span className='inline-flex items-center gap-1 text-xs bg-white/20 px-3 py-1 rounded-full'>
+                                            <FontAwesomeIcon icon={getStatusBadge(selectedJob.status).icon} className='text-xs' />
+                                            {getStatusBadge(selectedJob.status).label}
+                                        </span>
+                                    </div>
                                 </div>
-                                {selectedJob.featured && (
-                                    <span className='bg-white text-orange-600 text-xs px-3 py-1 rounded-full'>
-                                        Featured
-                                    </span>
-                                )}
                             </div>
                         </div>
 
@@ -554,78 +783,50 @@ function Jobs() {
                             <div className='grid grid-cols-2 md:grid-cols-3 gap-4 mb-6'>
                                 <div className='bg-orange-50 p-3 rounded-lg'>
                                     <p className='text-xs text-orange-400 mb-1'>Location</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.location}</p>
+                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.location || 'Remote'}</p>
                                 </div>
                                 <div className='bg-orange-50 p-3 rounded-lg'>
                                     <p className='text-xs text-orange-400 mb-1'>Job Type</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.type}</p>
-                                </div>
-                                <div className='bg-orange-50 p-3 rounded-lg'>
-                                    <p className='text-xs text-orange-400 mb-1'>Schedule</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.schedule}</p>
+                                    <p className='text-sm font-medium text-orange-800'>{formatJobType(selectedJob.type)}</p>
                                 </div>
                                 <div className='bg-orange-50 p-3 rounded-lg'>
                                     <p className='text-xs text-orange-400 mb-1'>Salary</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.salary}</p>
-                                </div>
-                                <div className='bg-orange-50 p-3 rounded-lg'>
-                                    <p className='text-xs text-orange-400 mb-1'>Language</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.language}</p>
+                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.salary || 'Negotiable'}</p>
                                 </div>
                                 <div className='bg-orange-50 p-3 rounded-lg'>
                                     <p className='text-xs text-orange-400 mb-1'>Posted</p>
-                                    <p className='text-sm font-medium text-orange-800'>{selectedJob.posted}</p>
+                                    <p className='text-sm font-medium text-orange-800'>{formatPostedDate(selectedJob.createdAt)}</p>
+                                </div>
+                                <div className='bg-orange-50 p-3 rounded-lg'>
+                                    <p className='text-xs text-orange-400 mb-1'>Work Setup</p>
+                                    <p className='text-sm font-medium text-orange-800'>{getSetupLabel(selectedJob.location)}</p>
                                 </div>
                             </div>
 
                             {/* Description */}
                             <div className='mb-6'>
                                 <h3 className='text-lg font-medium text-orange-800 mb-3'>Job Description</h3>
-                                <p className='text-gray-600 text-sm leading-relaxed'>
-                                    {selectedJob.description}
-                                </p>
+                                <div className='bg-gray-50 p-4 rounded-lg'>
+                                    <p className='text-gray-700 text-sm leading-relaxed whitespace-pre-wrap'>
+                                        {selectedJob.description || 'No description available'}
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Requirements */}
-                            <div className='mb-6'>
-                                <h3 className='text-lg font-medium text-orange-800 mb-3'>Requirements</h3>
-                                <ul className='list-disc pl-5 space-y-1'>
-                                    {selectedJob.requirements.map((req, index) => (
-                                        <li key={index} className='text-sm text-gray-600'>{req}</li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {/* Benefits */}
-                            <div className='mb-6'>
-                                <h3 className='text-lg font-medium text-orange-800 mb-3'>Benefits</h3>
-                                <ul className='list-disc pl-5 space-y-1'>
-                                    {selectedJob.benefits.map((benefit, index) => (
-                                        <li key={index} className='text-sm text-gray-600'>{benefit}</li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {/* Action Buttons */}
+                            {/* Action Buttons - Only show Apply button if job is active */}
                             <div className='flex items-center gap-3 pt-4 border-t border-orange-100'>
-                                <button className='flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium transition-colors'>
-                                    Apply Now
-                                </button>
-                                <button 
-                                    onClick={() => toggleBookmark(selectedJob.id)}
-                                    className='w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center justify-center transition-colors'
-                                >
-                                    <FontAwesomeIcon 
-                                        icon={faBookmark} 
-                                        className={bookmarked.includes(selectedJob.id) ? 'text-orange-600' : 'text-orange-400'} 
-                                    />
-                                </button>
-                                <button className='w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center justify-center transition-colors'>
-                                    <FontAwesomeIcon icon={faShare} className='text-orange-400' />
-                                </button>
-                                <button className='w-12 h-12 bg-orange-100 hover:bg-orange-200 rounded-lg flex items-center justify-center transition-colors'>
-                                    <FontAwesomeIcon icon={faInfoCircle} className='text-orange-400' />
-                                </button>
+                                {selectedJob.status === 'active' ? (
+                                    <button 
+                                        onClick={() => handleApplyClick(selectedJob)}
+                                        className='flex-1 bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-lg font-medium transition-colors'
+                                    >
+                                        Apply Now
+                                    </button>
+                                ) : (
+                                    <div className='flex-1 text-center py-3 bg-gray-100 text-gray-500 rounded-lg'>
+                                        This job is currently not accepting applications
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

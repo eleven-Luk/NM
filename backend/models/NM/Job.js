@@ -24,10 +24,14 @@ const jobSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['active', 'inactive', 'closed'],
+        enum: ['active', 'inactive', 'closed', 'archived'],
         default: 'active',
     },
     deletedAt: {
+        type: Date,
+        default: null,
+    },
+    archivedAt: {
         type: Date,
         default: null,
     }

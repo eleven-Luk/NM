@@ -11,7 +11,14 @@ import {
     faSort,
     faSortUp,
     faSortDown,
-    faArrowLeft
+    faArrowLeft,
+    faAngleDoubleLeft,
+    faChevronLeft,
+    faChevronRight,
+    faAngleDoubleRight,
+    faCheckSquare,
+    faSquare,
+    faTrash
 } from '@fortawesome/free-solid-svg-icons';
 import ArchivedApplicantTable from "../../components/tables/ArchivedApplicantTable";
 import ViewAppModal from "../../components/modals/NM/applicants/ViewAppModal";
@@ -35,7 +42,7 @@ function NMApplicantsArchive() {
     const itemsPerPage = 10;
 
     // Sorting states
-    const [sortConfig, setSortConfig] = useState({ key: 'deletedAt', direction: 'desc' });
+    const [sortConfig, setSortConfig] = useState({ key: 'archivedAt', direction: 'desc' });
 
     // Modal states
     const [showViewModal, setShowViewModal] = useState(false);
@@ -44,6 +51,13 @@ function NMApplicantsArchive() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [updatingId, setUpdatingId] = useState(null);
     const [deleteLoading, setDeleteLoading] = useState(false);
+    const [newApplications, setNewApplications] = useState([]);
+
+    // Bulk delete states
+    const [selectedApplications, setSelectedApplications] = useState([]);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
     const navigate = useNavigate();
 
@@ -109,6 +123,7 @@ function NMApplicantsArchive() {
                 setSuccessMessage('Application restored successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
                 setShowRestoreModal(false);
+                handleExitSelectMode();
             } else {
                 throw new Error(result.message || 'Failed to restore application');
             }
@@ -118,6 +133,110 @@ function NMApplicantsArchive() {
         } finally {
             setRestoringId(null);
         }
+    };
+
+    // Bulk delete functions
+    const handleSelectApplication = (applicationId) => {
+        setSelectedApplications(prev => 
+            prev.includes(applicationId) 
+                ? prev.filter(id => id !== applicationId)
+                : [...prev, applicationId]
+        );
+    };
+
+    const handleSelectAll = (applicationIds) => {
+        setSelectedApplications(applicationIds);
+    };
+
+    const handleExitSelectMode = () => {
+        setIsSelectMode(false);
+        setSelectedApplications([]);
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedApplications.length === 0) {
+            setError('Please select at least one application to delete');
+            return;
+        }
+
+        setBulkDeleteLoading(true);
+        let successCount = 0;
+        let errorCount = 0;
+
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('Please login to delete applications');
+                navigate('/login');
+                return;
+            }
+
+            // Delete each selected application
+            for (const applicationId of selectedApplications) {
+                try {
+                    const response = await fetch(`http://localhost:5000/api/applications/delete/${applicationId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        console.error(`Failed to delete application ${applicationId}:`, result.message);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    console.error(`Error deleting application ${applicationId}:`, error);
+                }
+            }
+
+            // Update the applications list
+            setArchivedApplicants(prev => prev.filter(app => !selectedApplications.includes(app._id)));
+            
+            if (newApplications) {
+                setNewApplications(prev => prev.filter(app => !selectedApplications.includes(app._id)));
+            }
+
+            // Show success message
+            if (successCount > 0) {
+                setSuccessMessage(`Successfully deleted ${successCount} application(s). ${errorCount > 0 ? `Failed to delete ${errorCount} application(s).` : ''}`);
+                setTimeout(() => setSuccessMessage(''), 5000);
+            } else {
+                setError(`Failed to delete ${errorCount} application(s). Please try again.`);
+            }
+
+            // Clear selections and exit select mode
+            setSelectedApplications([]);
+            setIsSelectMode(false);
+            setShowBulkDeleteModal(false);
+
+            // Adjust pagination if needed
+            const remainingCount = archivedApplicants.length - successCount;
+            const newTotalPages = Math.ceil(remainingCount / itemsPerPage);
+            if (currentPage > newTotalPages && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            }
+
+        } catch (error) {
+            console.error('Error during bulk delete:', error);
+            setError('Failed to delete selected applications. Please try again.');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (selectedApplications.length === 0) {
+            setError('Please select at least one application to delete');
+            return;
+        }
+        setShowBulkDeleteModal(true);
     };
 
     // Modal handlers
@@ -157,23 +276,24 @@ function NMApplicantsArchive() {
             const result = await response.json();
 
             if (result.success) {
-                setApplicants(prev => prev.filter(app => app._id !== applicationId));
-            }
+                setArchivedApplicants(prev => prev.filter(app => app._id !== applicationId));
 
-            if (showNewApplications) {
-                setNewApplications(prev => prev.filter(app => app._id !== applicationId));
-            }
-            
-            setSuccessMessage('Application deleted successfully');
-            setTimeout(() => setSuccessMessage(''), 3000);
+                if (newApplications) {
+                    setNewApplications(prev => prev.filter(app => app._id !== applicationId));
+                }
+                
+                setSuccessMessage('Application deleted successfully');
+                setTimeout(() => setSuccessMessage(''), 3000);
 
-            setShowDeleteModal(false);
-            setSelectedApplication(null);
+                setShowDeleteModal(false);
+                setSelectedApplication(null);
+                handleExitSelectMode();
 
-            const remainingItems = filteredApplications.length - 1;
-            const newTotalPages = Math.ceil(remainingItems / itemsPerPage);
-            if (currentPage > newTotalPages && currentPage > 1) {
-                setCurrentPage(currentPage - 1);
+                const remainingCount = archivedApplicants.length - 1;
+                const newTotalPages = Math.ceil(remainingCount / itemsPerPage);
+                if (currentPage > newTotalPages && currentPage > 1) {
+                    setCurrentPage(currentPage - 1);
+                }
             } else {
                 throw new Error(result.message || 'Failed to delete application');
             }
@@ -190,31 +310,33 @@ function NMApplicantsArchive() {
     const handleDelete = (application) => {
         setSelectedApplication(application);
         setShowDeleteModal(true);
-    }
+    };
     
     const handleConfirmDelete = async () => {
         if (selectedApplication){
             await handleDeleteApplication(selectedApplication._id);
         }
-    }
-
+    };
 
     // Filter handlers
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
     };
 
     const clearFilters = () => {
         setSearchTerm('');
         setCurrentPage(1);
+        handleExitSelectMode();
     };
 
     // Sorting handlers
     const handleSort = (key) => {
         const direction = sortConfig.key === key && sortConfig.direction === 'asc' ? 'desc' : 'asc';
         setSortConfig({ key, direction });
-    }
+        handleExitSelectMode();
+    };
     
     const getSortIcon = (key) => {
         if (sortConfig.key !== key) return faSort;
@@ -238,7 +360,7 @@ function NMApplicantsArchive() {
             let aValue = a[sortConfig.key];
             let bValue = b[sortConfig.key];
 
-            if (sortConfig.key === 'deletedAt') {
+            if (sortConfig.key === 'archivedAt') {
                 aValue = new Date(aValue);
                 bValue = new Date(bValue);
             }
@@ -304,7 +426,7 @@ function NMApplicantsArchive() {
             interviewed: 'bg-purple-100 text-purple-800 border-purple-200',
             hired: 'bg-green-100 text-green-800 border-green-200',
             rejected: 'bg-red-100 text-red-800 border-red-200',
-            deleted: 'bg-gray-100 text-gray-800 border-gray-200'
+            archived: 'bg-gray-100 text-gray-800 border-gray-200'
         };
         
         return (
@@ -320,7 +442,7 @@ function NMApplicantsArchive() {
         <div className="max-w-7xl mx-auto px-4 py-8">
             {/* Back Button */}
             <button
-                onClick={() => navigate('/nm-admin/applicants')}
+                onClick={() => navigate('/nm/applicants')} 
                 className="mb-6 flex items-center gap-2 text-gray-500 hover:text-orange-600 transition-colors"
             >
                 <FontAwesomeIcon icon={faArrowLeft} />
@@ -355,6 +477,49 @@ function NMApplicantsArchive() {
                     </div>
                 </div>
             </header>
+
+            {/* Bulk Actions Bar */}
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {!isSelectMode ? (
+                        <button
+                            onClick={() => setIsSelectMode(true)}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center gap-2"
+                        >
+                            <FontAwesomeIcon icon={faCheckSquare} />
+                            Select Multiple
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => handleSelectAll(currentItems.map(app => app._id))}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-orange-400 hover:text-orange-500 transition-colors flex items-center gap-2"
+                            >
+                                <FontAwesomeIcon icon={selectedApplications.length === currentItems.length ? faCheckSquare : faSquare} />
+                                {selectedApplications.length === currentItems.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                            <button
+                                onClick={handleBulkDeleteClick}
+                                disabled={selectedApplications.length === 0}
+                                className={`px-4 py-2 text-sm border rounded-lg transition-colors flex items-center gap-2 ${
+                                    selectedApplications.length > 0
+                                        ? 'border-red-300 text-red-600 hover:bg-red-50 hover:border-red-500'
+                                        : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                <FontAwesomeIcon icon={faTrash} />
+                                Delete Selected ({selectedApplications.length})
+                            </button>
+                            <button
+                                onClick={handleExitSelectMode}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
 
             {/* Filter Bar */}
             <div className="mb-8 space-y-4">
@@ -420,6 +585,12 @@ function NMApplicantsArchive() {
                 updatingId={updatingId}
                 restoringId={restoringId}
                 StatusBadge={StatusBadge}
+                currentPage={currentPage}
+                itemsPerPage={itemsPerPage}
+                isSelectMode={isSelectMode}
+                selectedApplications={selectedApplications}
+                onSelectApplication={handleSelectApplication}
+                onSelectAll={handleSelectAll}
             />
 
             {/* Pagination Controls */}
@@ -433,14 +604,14 @@ function NMApplicantsArchive() {
                         <button
                             onClick={goToFirstPage}
                             disabled={currentPage === 1}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <FontAwesomeIcon icon={faAngleDoubleLeft} className="text-xs" />
                         </button>
                         <button
                             onClick={goToPrevPage}
                             disabled={currentPage === 1}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <FontAwesomeIcon icon={faChevronLeft} className="text-xs" />
                         </button>
@@ -466,14 +637,14 @@ function NMApplicantsArchive() {
                         <button
                             onClick={goToNextPage}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <FontAwesomeIcon icon={faChevronRight} className="text-xs" />
                         </button>
                         <button
                             onClick={goToLastPage}
                             disabled={currentPage === totalPages}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <FontAwesomeIcon icon={faAngleDoubleRight} className="text-xs" />
                         </button>
@@ -505,8 +676,19 @@ function NMApplicantsArchive() {
                 onConfirm={handleConfirmDelete}
                 item={selectedApplication}
                 title="Delete Application"
-                subtitle="Are you sure you want to delete this application?"
+                subtitle="Are you sure you want to delete this application permanently?"
                 loading={deleteLoading}
+            />
+
+            {/* Bulk Delete Confirmation Modal */}
+            <DeleteModal 
+                isOpen={showBulkDeleteModal}
+                onClose={() => setShowBulkDeleteModal(false)}
+                onConfirm={handleBulkDelete}
+                item={null}
+                title="Bulk Delete Applications"
+                subtitle={`Are you sure you want to delete ${selectedApplications.length} application(s) permanently? This action cannot be undone.`}
+                loading={bulkDeleteLoading}
             />
         </div>
     );

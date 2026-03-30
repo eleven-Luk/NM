@@ -25,14 +25,28 @@ function EditAppModal({ isOpen, onClose, onSave, application }) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    const resetForm = () => {
+        setFormData({
+            status: 'pending',
+            notes: ''
+        });
+        setError('');
+        setSuccess('');
+        setLoading(false);
+    };
+
+
     useEffect(() => {
         if (application && isOpen) {
             setFormData({
                 status: application.status || 'pending',
                 notes: application.notes || ''
             });
+        } else if (!isOpen) {
+            resetForm();
         }
     }, [application, isOpen]);
+
 
     const validateForm = () => {
         if (!formData.status) {
@@ -118,7 +132,7 @@ function EditAppModal({ isOpen, onClose, onSave, application }) {
                         </div>
                         <div>
                             <h3 className='font-semibold text-gray-900'>
-                                {application.firstName} {application.lastName}
+                                {application.firstName} {application.middleName || ''} {application.lastName}
                             </h3>
                             <p className='text-sm text-gray-500'>
                                 Applied for: {application.jobId?.name || 'Position'}

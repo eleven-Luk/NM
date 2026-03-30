@@ -9,7 +9,8 @@ import {
     faFileAlt,
     faEnvelope,
     faPhone,
-    faUser
+    faUser,
+    faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -17,6 +18,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 function NMContactModal({ isOpen, onClose, job }) {
     const [formData, setFormData] = useState({
         firstName: '',
+        middleName: '',
         lastName: '',
         email: '',
         phone: '',
@@ -27,12 +29,14 @@ function NMContactModal({ isOpen, onClose, job }) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [fileName, setFileName] = useState('');
+    const [validationErrors, setValidationErrors] = useState({});
 
     // Reset form when modal closes
     useEffect(() => {
         if (!isOpen) {
             setFormData({
                 firstName: '',
+                middleName: '',
                 lastName: '',
                 email: '',
                 phone: '',
@@ -42,6 +46,7 @@ function NMContactModal({ isOpen, onClose, job }) {
             setFileName('');
             setError('');
             setSuccess('');
+            setValidationErrors({});
         }
     }, [isOpen]);
 
@@ -62,58 +67,71 @@ function NMContactModal({ isOpen, onClose, job }) {
             const file = files[0];
             setFormData(prev => ({ ...prev, [name]: file }));
             setFileName(file?.name || '');
+            // Clear error for resume when file is selected
+            if (file) {
+                setValidationErrors(prev => ({ ...prev, resume: '' }));
+            }
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
+            // Clear error for the field being typed in
+            if (validationErrors[name]) {
+                setValidationErrors(prev => ({ ...prev, [name]: '' }));
+            }
         }
-        if (error) setError('');
     };
 
     const validateForm = () => {
-        if (!formData.firstName.trim()) {
-            setError('First name is required');
-            return false;
+        const errors = {};
+        
+        if (!formData.firstName?.trim()) {
+            errors.firstName = 'First name is required';
         }
-        if (!formData.lastName.trim()) {
-            setError('Last name is required');
-            return false;
+        
+        if (!formData.lastName?.trim()) {
+            errors.lastName = 'Last name is required';
         }
-        if (!formData.email.trim()) {
-            setError('Email is required');
-            return false;
+        
+        if (!formData.email?.trim()) {
+            errors.email = 'Email is required';
+        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+            errors.email = 'Please enter a valid email address';
         }
-        if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            setError('Please enter a valid email address');
-            return false;
+        
+        if (!formData.phone?.trim()) {
+            errors.phone = 'Phone number is required';
         }
-        if (!formData.phone.trim()) {
-            setError('Phone number is required');
-            return false;
-        }
+        
+        // Resume validation
         if (!formData.resume) {
-            setError('Resume is required');
-            return false;
+            errors.resume = 'Resume/CV is required to complete your application';
+        } else {
+            // Check file size (5MB max)
+            if (formData.resume.size > 5 * 1024 * 1024) {
+                errors.resume = 'File size must be less than 5MB';
+            }
+            
+            // Check file type
+            const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+            if (!allowedTypes.includes(formData.resume.type)) {
+                errors.resume = 'Only PDF, DOC, and DOCX files are allowed';
+            }
         }
         
-        // Check file size (5MB max)
-        if (formData.resume.size > 5 * 1024 * 1024) {
-            setError('File size must be less than 5MB');
-            return false;
-        }
+        setValidationErrors(errors);
         
-        // Check file type
-        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-        if (!allowedTypes.includes(formData.resume.type)) {
-            setError('Only PDF, DOC, and DOCX files are allowed');
-            return false;
-        }
-        
-        return true;
+        // Return true if no errors
+        return Object.keys(errors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!validateForm()) return;
+        console.log('Form submitted');
+        
+        if (!validateForm()) {
+            console.log('Validation failed:', validationErrors);
+            return;
+        }
         
         // Validate job ID
         if (!job || !job._id) {
@@ -138,6 +156,7 @@ function NMContactModal({ isOpen, onClose, job }) {
         try {
             const formDataToSend = new FormData();
             formDataToSend.append('firstName', formData.firstName);
+            formDataToSend.append('middleName', formData.middleName);
             formDataToSend.append('lastName', formData.lastName);
             formDataToSend.append('email', formData.email);
             formDataToSend.append('phone', formData.phone);
@@ -147,6 +166,7 @@ function NMContactModal({ isOpen, onClose, job }) {
             
             console.log('📤 Sending application with data:', {
                 firstName: formData.firstName,
+                middleName: formData.middleName,
                 lastName: formData.lastName,
                 email: formData.email,
                 phone: formData.phone,
@@ -184,6 +204,16 @@ function NMContactModal({ isOpen, onClose, job }) {
         }
     };
 
+    // Helper to check if a field has error
+    const hasError = (field) => {
+        return !!validationErrors[field];
+    };
+
+    // Helper to get error message
+    const getError = (field) => {
+        return validationErrors[field] || '';
+    };
+
     return (
         <BaseModal
             isOpen={isOpen}
@@ -217,7 +247,7 @@ function NMContactModal({ isOpen, onClose, job }) {
                 </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-0">
+            <form onSubmit={handleSubmit} className="space-y-4 p-6 pt-0" noValidate>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -229,12 +259,36 @@ function NMContactModal({ isOpen, onClose, job }) {
                             name="firstName"
                             value={formData.firstName}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-400 focus:border-orange-400"
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                                hasError('firstName') ? 'border-red-400' : 'border-gray-300'
+                            }`}
                             disabled={loading}
-                            required
                         />
+                        {hasError('firstName') && (
+                            <p className="text-xs text-red-500 mt-1">{getError('firstName')}</p>
+                        )}
                     </div>
                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <FontAwesomeIcon icon={faUser} className="mr-1 text-gray-400 text-xs" />
+                            Middle Name *
+                        </label>
+                        <input
+                            type="text"
+                            name="middleName"
+                            value={formData.middleName}
+                            onChange={handleChange}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                                hasError('middleName') ? 'border-red-400' : 'border-gray-300'
+                            }`}
+                            disabled={loading}
+                        />
+                        {hasError('middleName') && (
+                            <p className="text-xs text-red-500 mt-1">{getError('middleName')}</p>
+                        )}
+                    </div>
+                </div>
+                <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             Last Name *
                         </label>
@@ -243,12 +297,15 @@ function NMContactModal({ isOpen, onClose, job }) {
                             name="lastName"
                             value={formData.lastName}
                             onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-400 focus:border-orange-400"
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                                hasError('lastName') ? 'border-red-400' : 'border-gray-300'
+                            }`}
                             disabled={loading}
-                            required
                         />
+                        {hasError('lastName') && (
+                            <p className="text-xs text-red-500 mt-1">{getError('lastName')}</p>
+                        )}
                     </div>
-                </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -261,10 +318,14 @@ function NMContactModal({ isOpen, onClose, job }) {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="your.email@example.com"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-400 focus:border-orange-400"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                            hasError('email') ? 'border-red-400' : 'border-gray-300'
+                        }`}
                         disabled={loading}
-                        required
                     />
+                    {hasError('email') && (
+                        <p className="text-xs text-red-500 mt-1">{getError('email')}</p>
+                    )}
                 </div>
 
                 <div>
@@ -278,10 +339,14 @@ function NMContactModal({ isOpen, onClose, job }) {
                         value={formData.phone}
                         onChange={handleChange}
                         placeholder="+63 912 345 6789"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-400 focus:border-orange-400"
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                            hasError('phone') ? 'border-red-400' : 'border-gray-300'
+                        }`}
                         disabled={loading}
-                        required
                     />
+                    {hasError('phone') && (
+                        <p className="text-xs text-red-500 mt-1">{getError('phone')}</p>
+                    )}
                 </div>
 
                 <div>
@@ -291,9 +356,11 @@ function NMContactModal({ isOpen, onClose, job }) {
                     </label>
                     <div className="flex items-center gap-2">
                         <label className="flex-1">
-                            <div className="flex items-center justify-center w-full px-4 py-2 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
-                                <FontAwesomeIcon icon={faFileAlt} className="text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-600">
+                            <div className={`flex items-center justify-center w-full px-4 py-2 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors ${
+                                hasError('resume') ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                            }`}>
+                                <FontAwesomeIcon icon={faFileAlt} className={`mr-2 ${hasError('resume') ? 'text-red-500' : 'text-gray-400'}`} />
+                                <span className={`text-sm ${hasError('resume') ? 'text-red-600' : 'text-gray-600'}`}>
                                     {fileName || 'Choose file (PDF, DOC, DOCX)'}
                                 </span>
                                 <input
@@ -303,11 +370,16 @@ function NMContactModal({ isOpen, onClose, job }) {
                                     accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                     className="hidden"
                                     disabled={loading}
-                                    required
                                 />
                             </div>
                         </label>
                     </div>
+                    {hasError('resume') && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+                            <FontAwesomeIcon icon={faExclamationTriangle} className="text-red-500 text-sm mt-0.5" />
+                            <p className="text-xs text-red-600">{getError('resume')}</p>
+                        </div>
+                    )}
                     <p className="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX (Max 5MB)</p>
                 </div>
 

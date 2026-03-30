@@ -133,7 +133,7 @@ const ApplicantTable = ({
                                     </div>
                                     <div className="ml-4">
                                         <div className="text-sm font-medium text-gray-900">
-                                            {applicant.firstName} {applicant.lastName}
+                                            {applicant.firstName} {applicant.middleName || ''} {applicant.lastName}
                                         </div>
                                     </div>
                                 </div>

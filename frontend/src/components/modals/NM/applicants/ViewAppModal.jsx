@@ -241,7 +241,7 @@ const ViewAppModal = ({ isOpen, onClose, application }) => {
                             </div>
                             <div className="flex-1">
                                 <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                                    {currentData.firstName} {currentData.lastName}
+                                    {currentData.firstName} {currentData.middleName || ''} {currentData.lastName}
                                 </h3>
                                 <div className="flex items-center gap-2 mb-3 flex-wrap">
                                     <span className={`px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1 ${statusConfig.color}`}>

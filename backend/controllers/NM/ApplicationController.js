@@ -2,7 +2,7 @@ import Application from '../../models/NM/Application.js';
 
 export const createApplication = async (req, res) => {
     try {
-        const { firstName, lastName, email, phone, jobId, resume, message } = req.body;
+        const { firstName, middleName, lastName, email, phone, jobId, resume, message } = req.body;
         
         // Validation 
         if (!firstName || !lastName || !email || !phone || !jobId || !resume) {
@@ -19,6 +19,7 @@ export const createApplication = async (req, res) => {
                 message: 'Please fill in all fields',
                 missing: {
                     firstName: !firstName,
+                    middleName: !middleName,
                     lastName: !lastName,
                     email: !email,
                     phone: !phone,
@@ -47,6 +48,7 @@ export const createApplication = async (req, res) => {
         console.log('Creating new application...');
         const newApplication = await Application.create({
             firstName: firstName.trim(),
+            middleName: middleName.trim(),
             lastName: lastName.trim(),
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
@@ -244,7 +246,7 @@ export const moveToArchive = async (req, res) => {
                 id: movedApplication._id,
                 name: `${movedApplication.firstName} ${movedApplication.lastName}`,
                 status: movedApplication.status,
-                archivedAt: movedApplication.deletedAt
+                archivedAt: movedApplication.archivedAt,
             }
         });
 

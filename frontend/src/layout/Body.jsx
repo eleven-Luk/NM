@@ -11,7 +11,8 @@ import {
     faCalendarCheck,
     faTag,
     faBuilding,
-    faLanguage
+    faLanguage,
+    faCheckCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import MContactModal from '../components/modals/MContactModal';
 import NMContactModal from '../components/modals/NMContactModal';
@@ -346,52 +347,95 @@ function Body() {
                         </div>
                     ) : (
                         <div className='space-y-4 max-h-96 overflow-y-auto pr-2 custom-scrollbar'>
-                            {jobs.slice(0, 6).map((job) => (
-                                <div 
-                                    key={job._id} 
-                                    className='border border-orange-100 rounded-xl p-4 transition-all duration-300 hover:shadow-md bg-white'
-                                >
-                                    <div className='flex justify-between items-start mb-2'>
-                                        <h4 className='font-medium text-orange-800 text-base'>{job.name}</h4>
-                                        <span className='text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full whitespace-nowrap'>
-                                            {formatPostedDate(job.createdAt)}
-                                        </span>
-                                    </div>
+                            {jobs
+                                .filter(job => job.status !== 'closed' && job.status !== 'archived') // Filter out closed and archived jobs
+                                .slice(0, 6)
+                                .map((job) => {
+                                    // Get status badge styling
+                                    const getStatusBadge = (status) => {
+                                        const statusConfig = {
+                                            active: {
+                                                color: 'bg-green-100 text-green-800',
+                                                label: 'Active'
+                                            },
+                                            inactive: {
+                                                color: 'bg-yellow-100 text-yellow-800',
+                                                label: 'Inactive'
+                                            },
+                                            closed: {
+                                                color: 'bg-red-100 text-red-800',
+                                                label: 'Closed'
+                                            },
+                                            archived: {
+                                                color: 'bg-gray-100 text-gray-800',
+                                                label: 'Archived'
+                                            }
+                                        };
+                                        return statusConfig[status?.toLowerCase()] || statusConfig.active;
+                                    };
+
+                                    const statusConfig = getStatusBadge(job.status);
                                     
-                                    <div className='grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3'>
-                                        <span className='flex items-center gap-1'>
-                                            <FontAwesomeIcon icon={faLocationDot} className='text-orange-400' />
-                                            {job.location || 'Remote'}
-                                        </span>
-                                        <span className='flex items-center gap-1'>
-                                            <FontAwesomeIcon icon={faClock} className='text-orange-400' />
-                                            {formatJobType(job.type)}
-                                        </span>
-                                        <span className='flex items-center gap-1 col-span-2'>
-                                            <FontAwesomeIcon icon={faTag} className='text-orange-400' />
-                                            {job.salary || 'Salary negotiable'}
-                                        </span>
-                                    </div>
-
-                                    <div className='flex items-center justify-between'>
-                                        <span className='bg-blue-50 text-blue-600 text-xs px-3 py-1 rounded-full flex items-center gap-1'>
-                                            <FontAwesomeIcon icon={faLanguage} className='text-xs' />
-                                            {job.language || 'English'}
-                                        </span>
-
-                                        {/* ✅ FIXED: Pass the job to handleApplyClick */}
-                                        <button 
-                                            onClick={() => handleApplyClick(job)}
-                                            className='text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 
-                                                     rounded-lg flex items-center gap-2 transition-all duration-200 
-                                                     shadow-sm hover:shadow'
+                                    return (
+                                        <div 
+                                            key={job._id} 
+                                            className='border border-orange-100 rounded-xl p-4 transition-all duration-300 hover:shadow-md bg-white'
                                         >
-                                            Apply Now 
-                                            <FontAwesomeIcon icon={faArrowRight} className='text-xs' />
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                            <div className='flex justify-between items-start mb-2'>
+                                                <h4 className='font-medium text-orange-800 text-base'>{job.name}</h4>
+                                                <div className="flex gap-2">
+                                                    <span className='text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full whitespace-nowrap'>
+                                                        {formatPostedDate(job.createdAt)}
+                                                    </span>
+                                                    {/* Status Badge */}
+                                                    <span className={`text-xs px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1 ${statusConfig.color}`}>
+                                                        <FontAwesomeIcon icon={faCheckCircle} className="text-xs" />
+                                                        {statusConfig.label}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className='grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3'>
+                                                <span className='flex items-center gap-1'>
+                                                    <FontAwesomeIcon icon={faLocationDot} className='text-orange-400' />
+                                                    {job.location || 'Remote'}
+                                                </span>
+                                                <span className='flex items-center gap-1'>
+                                                    <FontAwesomeIcon icon={faClock} className='text-orange-400' />
+                                                    {formatJobType(job.type)}
+                                                </span>
+                                                <span className='flex items-center gap-1 col-span-2'>
+                                                    <FontAwesomeIcon icon={faTag} className='text-orange-400' />
+                                                    {job.salary || 'Salary negotiable'}
+                                                </span>
+                                            </div>
+
+                                            <div className='flex items-center justify-between'>
+                                                <span className='bg-blue-50 text-blue-600 text-xs px-3 py-1 rounded-full flex items-center gap-1'>
+                                                    <FontAwesomeIcon icon={faLanguage} className='text-xs' />
+                                                    {job.language || 'English'}
+                                                </span>
+
+                                                {/* Only show Apply Now button if job is active */}
+                                                {job.status === 'active' ? (
+                                                    <button 
+                                                        onClick={() => handleApplyClick(job)}
+                                                        className='text-xs bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 
+                                                                rounded-lg flex items-center gap-2 transition-all duration-200 
+                                                                shadow-sm hover:shadow'
+                                                    >
+                                                        Apply Now 
+                                                        <FontAwesomeIcon icon={faArrowRight} className='text-xs' />
+                                                    </button>
+                                                ) : (
+                                                    <span className='text-xs text-gray-400 bg-gray-100 px-4 py-2 rounded-lg'>
+                                                        Not Available
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                         </div>
                     )}
 

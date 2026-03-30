@@ -5,25 +5,20 @@ import {
     faTrashAlt,
     faTimes,
     faBan,
-    faUser,
-    faEnvelope,
-    faPhone,
-    faFileAlt,
     faBriefcase,
-    faCalendarAlt,
+    faMapMarkerAlt,
+    faMoneyBillWave,
     faClock,
-    faCheckCircle,
-    faTimesCircle,
-    faEye
+    faCalendarAlt
 } from '@fortawesome/free-solid-svg-icons';
 
-function DeleteModal({ 
+function DeleteJobModal({ 
     isOpen, 
     onClose, 
     onConfirm, 
-    item,
-    title = "Delete Application",
-    subtitle = "Are you sure you want to delete this application?",
+    job,
+    title = "Delete Job Permanently",
+    subtitle = "Are you sure you want to permanently delete this job?",
     loading = false
 }) {
     const [confirmText, setConfirmText] = useState('');
@@ -31,35 +26,14 @@ function DeleteModal({
 
     if (!isOpen) return null;
 
-    const getStatusConfig = (status) => {
-        const configs = {
-            pending: {
-                color: 'bg-yellow-100 text-yellow-800',
-                icon: faClock,
-                label: 'Pending'
-            },
-            reviewed: {
-                color: 'bg-blue-100 text-blue-800',
-                icon: faEye,
-                label: 'Reviewed'
-            },
-            interviewed: {
-                color: 'bg-purple-100 text-purple-800',
-                icon: faUser,
-                label: 'Interviewed'
-            },
-            hired: {
-                color: 'bg-green-100 text-green-800',
-                icon: faCheckCircle,
-                label: 'Hired'
-            },
-            rejected: {
-                color: 'bg-red-100 text-red-800',
-                icon: faTimesCircle,
-                label: 'Rejected'
-            }
-        };
-        return configs[status] || configs.pending;
+    const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     };
 
     const formatJobType = (type) => {
@@ -76,16 +50,6 @@ function DeleteModal({
         return typeMap[type?.toLowerCase()] || type || 'N/A';
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
-
     const handleConfirm = async () => {
         if (confirmText !== 'DELETE') {
             setError('Please type "DELETE" to confirm');
@@ -97,7 +61,7 @@ function DeleteModal({
             await onConfirm();
             setConfirmText('');
         } catch (err) {
-            setError(err.message || 'Failed to delete application');
+            setError(err.message || 'Failed to delete job');
         }
     };
 
@@ -106,8 +70,6 @@ function DeleteModal({
         setError('');
         onClose();
     };
-
-    const application = item;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fadeIn">
@@ -143,128 +105,67 @@ function DeleteModal({
                                     This action cannot be undone!
                                 </p>
                                 <p className="text-xs text-red-700">
-                                    Deleting this application will permanently remove all associated data, including notes and history.
+                                    Permanently deleting this job will remove all associated data and cannot be recovered.
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Application Details */}
-                    {application && application._id && (
+                    {/* Job Details */}
+                    {job && job._id && (
                         <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                             <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                                <FontAwesomeIcon icon={faFileAlt} className="text-gray-500" />
-                                Application Details
+                                <FontAwesomeIcon icon={faBriefcase} className="text-gray-500" />
+                                Job Details
                             </h3>
                             
                             <div className="space-y-3">
-                                {/* Applicant Name */}
+                                {/* Job Name */}
                                 <div className="flex items-start gap-2">
-                                    <FontAwesomeIcon icon={faUser} className="text-gray-400 text-sm mt-0.5" />
+                                    <FontAwesomeIcon icon={faBriefcase} className="text-gray-400 text-sm mt-0.5" />
                                     <div className="flex-1">
-                                        <p className="font-medium text-gray-900">
-                                            {application.firstName} {application.middleName || ''} {application.lastName}
-                                        </p>
+                                        <p className="font-medium text-gray-900">{job.name}</p>
                                         <p className="text-xs text-gray-500 mt-0.5">
-                                            Applicant
+                                            {formatJobType(job.type)}
                                         </p>
                                     </div>
                                 </div>
                                 
-                                {/* Contact Information */}
-                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-gray-200">
-                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                        <FontAwesomeIcon icon={faEnvelope} className="text-gray-400" />
-                                        <span className="truncate">{application.email || 'No email'}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                        <FontAwesomeIcon icon={faPhone} className="text-gray-400" />
-                                        <span>{application.phone || 'No phone'}</span>
-                                    </div>
+                                {/* Location */}
+                                <div className="flex items-center gap-2 text-xs text-gray-600 pt-2 border-t border-gray-200">
+                                    <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400" />
+                                    <span>{job.location || 'Remote'}</span>
                                 </div>
 
-                                {/* Job Position */}
-                                <div className="pt-2 border-t border-gray-200">
-                                    <div className="flex items-center gap-2 text-xs text-gray-600 mb-1">
-                                        <FontAwesomeIcon icon={faBriefcase} className="text-gray-400" />
-                                        <span className="font-medium">Position Applied:</span>
-                                    </div>
-                                    <p className="text-sm text-gray-800">
-                                        {application.jobId?.name || 'N/A'}
-                                    </p>
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        {formatJobType(application.jobId?.type)}
-                                    </p>
+                                {/* Salary */}
+                                <div className="flex items-center gap-2 text-xs text-gray-600">
+                                    <FontAwesomeIcon icon={faMoneyBillWave} className="text-gray-400" />
+                                    <span>{job.salary || 'Negotiable'}</span>
                                 </div>
 
-                                {/* Status */}
-                                {application.status && (
-                                    <div className="pt-2 border-t border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-xs text-gray-500">Application Status:</span>
-                                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusConfig(application.status).color}`}>
-                                                {getStatusConfig(application.status).label.toUpperCase()}
-                                            </span>
-                                        </div>
+                                {/* Created Date */}
+                                {job.createdAt && (
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 pt-2 border-t border-gray-200">
+                                        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+                                        <span>Created: {formatDate(job.createdAt)}</span>
                                     </div>
                                 )}
 
-                                {/* Experience/Education */}
-                                {(application.experience || application.education) && (
-                                    <div className="pt-2 border-t border-gray-200">
-                                        <p className="text-xs text-gray-500 mb-1">Experience/Education:</p>
-                                        <p className="text-sm text-gray-700">
-                                            {application.experience || application.education}
-                                        </p>
-                                    </div>
-                                )}
-
-                                {/* Applied Date */}
-                                {application.createdAt && (
-                                    <div className="pt-2 border-t border-gray-200">
-                                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                                            <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
-                                            <span>Applied: {formatDate(application.createdAt)}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Last Updated */}
-                                {application.updatedAt && (
+                                {/* Archived Date */}
+                                {job.archivedAt && (
                                     <div className="flex items-center gap-2 text-xs text-gray-500">
-                                        <FontAwesomeIcon icon={faClock} className="text-gray-400" />
-                                        <span>Last updated: {formatDate(application.updatedAt)}</span>
+                                        <FontAwesomeIcon icon={faCalendarAlt} className="text-gray-400" />
+                                        <span>Archived: {formatDate(job.archivedAt)}</span>
                                     </div>
                                 )}
 
                                 {/* ID for debugging */}
                                 <div className="pt-2 border-t border-gray-200">
                                     <p className="text-xs text-gray-400">
-                                        ID: {application._id}
+                                        ID: {job._id}
                                     </p>
                                 </div>
                             </div>
-                        </div>
-                    )}
-
-                    {/* Admin Notes Preview */}
-                    {application && application.notes && (
-                        <div className="mb-6 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                            <p className="text-xs font-medium text-blue-800 mb-2 flex items-center gap-1">
-                                <FontAwesomeIcon icon={faFileAlt} className="text-xs" />
-                                Admin Notes:
-                            </p>
-                            <p className="text-sm text-blue-700">{application.notes}</p>
-                        </div>
-                    )}
-
-                    {/* Resume/CV Info */}
-                    {application && application.resumeUrl && (
-                        <div className="mb-6 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                            <p className="text-xs text-purple-800 flex items-center gap-2">
-                                <FontAwesomeIcon icon={faFileAlt} className="text-xs" />
-                                <span>Resume/CV attached to this application</span>
-                            </p>
                         </div>
                     )}
 
@@ -298,8 +199,8 @@ function DeleteModal({
                         <p className="text-xs text-amber-800 flex items-start gap-2">
                             <FontAwesomeIcon icon={faBan} className="text-amber-600 mt-0.5" />
                             <span>
-                                This will permanently remove this application and all associated data.
-                                Consider archiving instead if you want to keep the application for future reference.
+                                This will permanently delete this job and all associated applications.
+                                This action cannot be undone.
                             </span>
                         </p>
                     </div>
@@ -343,4 +244,4 @@ function DeleteModal({
     );
 }
 
-export default DeleteModal;
+export default DeleteJobModal;

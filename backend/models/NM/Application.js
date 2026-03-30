@@ -7,6 +7,10 @@ const applicationSchema = new mongoose.Schema({
         required: [true, 'First name is required'],
         trim: true,
     },
+    middleName: {
+        type: String,
+        trim: true,
+    },
     lastName: {
         type: String,
         required: [true, 'Last name is required'],

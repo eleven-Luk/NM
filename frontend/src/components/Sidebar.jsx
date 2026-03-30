@@ -79,11 +79,23 @@ function Sidebar() {
                     icon: faHome,
                     type: 'link'
                 },
-                { 
-                    path: '/nm-admin/jobs', 
+                {  
                     label: 'JOBS', 
                     icon: faBriefcase,
-                    type: 'link'
+                    type: 'submenu',
+                    key: 'jobs',
+                    subItems: [
+                        {
+                            path: '/nm-admin/jobs',
+                            label: 'All Jobs',
+                            icon: faBriefcase
+                        },
+                        {
+                            path: '/nm-admin/jobs/archived',
+                            label: 'Archive',
+                            icon: faArchive
+                        }
+                    ]
                 },
                 { 
                     label: 'APPLICANTS', 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArchive, faExclamationTriangle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import ConfirmModal from '../../common/ConfirmModal.jsx';
@@ -6,6 +6,19 @@ import ConfirmModal from '../../common/ConfirmModal.jsx';
 const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, application }) => {
     const [isLoading, setIsLoading] = React.useState(false);
     const [error, setError] = React.useState('');
+
+    useEffect(() => {
+        if (isOpen) {
+            setError('');
+            setIsLoading(false);
+        }
+    }, [isOpen]);
+
+    const resetModalState = () => {
+        setError('');
+        setIsLoading(false);
+    };
+
 
     if (!isOpen || !application) return null;
 
@@ -33,6 +46,7 @@ const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, applicati
 
             if (result.success) {
                 onMoveToArchiveSuccess(application._id);
+                resetModalState();
                 onClose();
             } else {
                 setError(result.message || 'Failed to archive application');
@@ -91,7 +105,7 @@ const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, applicati
             onConfirm={handleMoveToArchive}
             title="Archive Application"
             message="This application will be moved to the archive and won't appear in active listings. You can restore it later if needed."
-            itemName={`${application.firstName} ${application.lastName}`}
+            itemName={`${application.firstName} ${application.middleName || ''} ${application.lastName}`}
             itemDetails={itemDetails}
             confirmText="Archive"
             cancelText="Cancel"
