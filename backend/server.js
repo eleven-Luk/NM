@@ -5,11 +5,16 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
 
-// Routes import
+// NM Routes import
 import authRoutes from './routes/authRoutes.js';
 import jobRoutes from '../backend/routes/NM/jobRoutes.js'
 import appliRoutes from '../backend/routes/NM/appliRoutes.js'
+
 import concernRoutes from '../backend/routes/NM/concernRoutes.js'
+
+// Maple Routes import
+import appoRoutes from '../backend/routes/Maple/AppoRoutes.js'
+
 
 // Load environment variables
 dotenv.config();
@@ -29,11 +34,16 @@ app.use(express.json());                  //  JSON API requests
 app.use(express.urlencoded({ extended: true })); // HTML form submissions
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
 
-// Routes
+// Public Routes
 app.use('/api/auth', authRoutes);
+
+// Protected Routes NM
 app.use('/api/jobs', jobRoutes);
 app.use('/api/applications', appliRoutes);
 app.use('/api/concerns', concernRoutes);
+
+// Protected Routes Maple
+app.use('/api/appointments', appoRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

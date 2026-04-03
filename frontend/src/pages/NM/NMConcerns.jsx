@@ -78,7 +78,7 @@ function NMConcerns(){
                 return;
             }
 
-            const response = await fetch('http://localhost:5000/api/concerns/getAll', {
+            const response = await fetch('http://localhost:5000/api/concerns/business/nm', { 
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -630,6 +630,7 @@ function NMConcerns(){
 
             {/* Filter Bar */}
             <FilterBar
+                theme="nm"
                 searchTerm={searchTerm}
                 onSearchChange={handleSearch}
                 searchPlaceholder="Search concerns..."

@@ -134,7 +134,7 @@ function UnifiedContactModal({ isOpen, onClose }) {
             }
 
             if (result.success) {
-                setSuccess(result.message || 'Message sent successfully!');
+                setSuccess(result.message || 'Message sent successfully! We\'ll get back to you within 24 hours. Kindly check your email and phone for our response.');
                 setTimeout(() => {
                     setSuccess('');
                     onClose();

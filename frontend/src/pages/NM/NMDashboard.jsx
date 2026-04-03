@@ -62,7 +62,7 @@ const NMDashboard = () => {
             });
             const applicantsResult = await applicantsResponse.json();
             
-            const concernsResponse = await fetch('http://localhost:5000/api/concerns/getAll', {
+            const concernsResponse = await fetch('http://localhost:5000/api/concerns/business/nm', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const concernsResult = await concernsResponse.json();

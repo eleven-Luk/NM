@@ -1,7 +1,7 @@
 // models/NM/Concern.js
 import mongoose from 'mongoose';
 
-const concernsSchema = new mongoose.Schema({
+const concernSchema = new mongoose.Schema({
     name: {
         type: String,
         required: [true, 'Name is required'],
@@ -28,6 +28,7 @@ const concernsSchema = new mongoose.Schema({
     businessType: {
         type: String,
         enum: ['maple', 'nm'],
+        required: true,
         default: 'nm',
     },
     
@@ -49,27 +50,48 @@ const concernsSchema = new mongoose.Schema({
         trim: true,
     },
 
+    // Fields specific to package information (for Maple)
+    packageType: {
+        type: String,
+        trim: true,
+    },
+
     // For Admin Use
     status: {
         type: String,
         enum: ['pending', 'reviewed', 'resolved', 'rejected'],
         default: 'pending',
     },
+
+    priority: {
+        type: String,
+        enum: ['low', 'medium', 'high'],
+        default: 'medium',
+    },
+
     notes: {
         type: String,
         trim: true,
+    },
+
+    updatedAt: {
+        type: Date,
+        default: Date.now,
     },
 }, {
     timestamps: true,
 });
 
 // Add indexes for better query performance
-concernsSchema.index({ email: 1 });
-concernsSchema.index({ phone: 1 });
-concernsSchema.index({ businessType: 1 });
-concernsSchema.index({ inquiryType: 1 });
-concernsSchema.index({ status: 1 });
-concernsSchema.index({ createdAt: -1 });
+concernSchema.index({ businessType: 1 });
+concernSchema.index({ status: 1 });
+concernSchema.index({ createdAt: -1 });
+concernSchema.index({ email: 1 });
 
-const Concerns = mongoose.model('Concerns', concernsSchema);
+concernSchema.pre('save', function(next) {
+    this.updatedAt = new Date();
+    next();
+});
+
+const Concerns = mongoose.model('Concerns', concernSchema);
 export default Concerns;

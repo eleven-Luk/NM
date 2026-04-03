@@ -1,12 +1,8 @@
-
-import Concerns  from "../../models/NM/Concerns.js";
-
+// controllers/NM/ConcernControl.js
+import Concerns from "../../models/NM/Concerns.js";
 
 export const createConcerns = async (req, res) => {
     try {
-        console.log('=== CREATE CONCERN DEBUG ===');
-        console.log('Request body:', req.body);
-        
         const { 
             name, 
             email, 
@@ -15,84 +11,48 @@ export const createConcerns = async (req, res) => {
             businessType, 
             inquiryType,
             companyName,
-            position
+            position,
+            packageType,
         } = req.body;
 
         // Basic validation
-        if (!name || !email || !phone || !message) {
+        if (!name || !email || !phone || !message || !businessType || !inquiryType) {
             console.log('Missing required fields:', { name, email, phone, message });
             return res.status(400).json({
                 success: false,
-                message: 'Name, email, phone, and message are required',
+                message: 'Please fill in all required fields',
             });
         }
 
-        // Prepare data - only include fields that exist in schema
-        const concernData = {
+        // Additional validation for employer partnership
+        if (businessType === 'nm' && inquiryType === 'employer-partnership' && !companyName) {
+            return res.status(400).json({
+                success: false,
+                message: 'Company name is required for employer partnership inquiries'
+            });
+        }
+
+        // Create Concern - ACTUALLY SAVE TO DATABASE
+        const newConcern = await Concerns.create({
             name: name.trim(),
             email: email.trim().toLowerCase(),
             phone: phone.trim(),
             message: message.trim(),
-        };
-
-        // Add optional fields only if they exist and are valid
-        if (businessType && ['maple', 'nm'].includes(businessType)) {
-            concernData.businessType = businessType;
-        }
-        
-        if (inquiryType && ['general', 'employer-partnership', 'package-information', 'others'].includes(inquiryType)) {
-            concernData.inquiryType = inquiryType;
-        }
-        
-        if (companyName && companyName.trim()) {
-            concernData.companyName = companyName.trim();
-        }
-        
-        if (position && position.trim()) {
-            concernData.position = position.trim();
-        }
-
-        console.log('Saving concern with data:', concernData);
-
-        const newConcerns = await Concerns.create(concernData);
-        
-        console.log('Concern created successfully:', newConcerns._id);
-
-        // Custom success message
-        let successMessage = 'Your message has been sent successfully!';
-        
-        if (businessType === 'maple') {
-            if (inquiryType === 'package-information') {
-                successMessage = 'Thank you for your interest! We will send you our package details shortly.';
-            } else {
-                successMessage = 'Thank you for contacting Maple Street Photography! We will get back to you soon.';
-            }
-        } else if (businessType === 'nm') {
-            if (inquiryType === 'employer-partnership') {
-                successMessage = 'Thank you for your partnership interest! Our recruitment team will contact you soon.';
-            } else {
-                successMessage = 'Thank you for contacting N&M Staffing! Our team will respond within 24 hours.';
-            }
-        }
+            businessType,
+            inquiryType,
+            companyName: companyName ? companyName.trim() : undefined,
+            position: position ? position.trim() : undefined,
+            packageType: packageType ? packageType.trim() : undefined,
+        });
 
         res.status(201).json({
             success: true,
-            message: successMessage,
-            data: {
-                id: newConcerns._id,
-                name: newConcerns.name,
-                email: newConcerns.email,
-                phone: newConcerns.phone,
-                businessType: newConcerns.businessType,
-                inquiryType: newConcerns.inquiryType,
-                status: newConcerns.status,
-                createdAt: newConcerns.createdAt,
-            },
+            message: 'Your message has been sent successfully!',
+            data: newConcern,
         });
-        
+
     } catch (error) {
         console.error('❌ Error creating concern:', error);
-        console.error('Error stack:', error.stack);
         
         // Handle validation errors
         if (error.name === 'ValidationError') {
@@ -107,24 +67,32 @@ export const createConcerns = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Internal server error',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: error.message
         });
     }
 };
 
-
-// Get concerns
-export const getConcerns = async (req, res) => {
+// Get concerns by business type - FIX: Use req.params, not req.query
+export const getConcernsByBusinessType = async (req, res) => {
     try {
-        const concerns = await Concerns.find({})
-        .sort({ createdAt: -1 });
+        const { businessType } = req.params; // CHANGE: req.params instead of req.query
+
+        if (!['nm', 'maple'].includes(businessType)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid business type. Must be "nm" or "maple"'
+            });
+        }
+
+        const concerns = await Concerns.find({ businessType })
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
             success: true,
-            message: 'Concerns retrieved successfully',
+            message: `${businessType === 'nm' ? 'N&M' : 'Maple'} concerns retrieved successfully`,
             data: concerns, 
             count: concerns.length,
-        })
+        });
         
     } catch (error) {
         console.error('Error fetching concerns:', error.message);
@@ -134,8 +102,7 @@ export const getConcerns = async (req, res) => {
             error: error.message
         });
     }
-}
-
+};
 
 // View Concerns
 export const getViewConcerns = async (req, res) => {
@@ -150,11 +117,11 @@ export const getViewConcerns = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        res.json({
             success: true,
-            message: 'Concern retrieved successfully',
-            data: concern,
-        })
+            message: 'Concern found successfully',
+            data: concern
+        });
 
     } catch (error) {
         console.error('Error fetching concern:', error.message);
@@ -164,24 +131,17 @@ export const getViewConcerns = async (req, res) => {
             error: error.message
         });
     }
-}
+};
 
-// Update Concerns
+// Update Concerns - FIX: Use Concerns model
 export const updateConcerns = async (req, res) => {
     try {
         const { concernId } = req.params;
-        const { status, notes } = req.body;
+        const { status, notes, priority } = req.body;
 
-        if (!status){
-            return res.status(400).json({
-                success: false,
-                message: 'Status is required',
-            });
-        }
-
-        const updatedConcern = await Concerns.findByIdAndUpdate(
-            concernId, 
-            { status, notes },
+        const updatedConcern = await Concerns.findByIdAndUpdate( // CHANGE: Concerns not Concern
+            concernId,
+            { status, notes, priority, updatedAt: new Date() },
             { new: true, runValidators: true }
         );
 
@@ -206,8 +166,9 @@ export const updateConcerns = async (req, res) => {
             error: error.message
         });
     }
-}
+};
 
+// Delete Concerns
 export const deleteConcerns = async (req, res) => {
     try {
         const { concernId } = req.params;
@@ -235,4 +196,4 @@ export const deleteConcerns = async (req, res) => {
             error: error.message
         });
     }
-}
+};
