@@ -15,7 +15,9 @@ import {
     faAngleDoubleLeft,
     faCheckSquare,
     faSquare,
-    faTrash
+    faTrash,
+    faDownload,
+    faFileExcel,
 } from '@fortawesome/free-solid-svg-icons';
 
 import FilterBar from "../../components/common/FilterBar";
@@ -115,6 +117,99 @@ function MAppointments() {
         fetchAppointments();
     }, [fetchAppointments]);
 
+    // Export functions
+    const formatDateForExport = (dateString) => {
+        if (!dateString) return 'N/A';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        });
+    };
+
+    const formatTimeForExport = (timeString) => {
+        if (!timeString) return 'N/A';
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours);
+        const ampm = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+        return `${hour12}:${minutes} ${ampm}`;
+    };
+
+    const exportToExcel = () => {
+        const dataToExport = getDisplayAppointments();
+        
+        const headers = [
+            'ID', 'Client Name', 'Email', 'Phone', 'Package Type', 'Status',
+            'Date', 'Time', 'Duration (Hours)', 'Location', 'Special Requests', 'Notes', 'Created At', 'Last Updated'
+        ];
+
+        const rows = dataToExport.map(app => ({
+            'ID': app._id?.slice(-8) || 'N/A',
+            'Client Name': app.name || 'N/A',
+            'Email': app.email || 'N/A',
+            'Phone': app.phone || 'N/A',
+            'Package Type': app.packageType || 'N/A',
+            'Status': app.status || 'N/A',
+            'Date': formatDateForExport(app.preferredDate),
+            'Time': formatTimeForExport(app.preferredTime),
+            'Duration (Hours)': app.durationHours || 'N/A',
+            'Location': app.location || 'N/A',
+            'Special Requests': app.specialRequests || 'N/A',
+            'Notes': app.notes || 'N/A',
+            'Created At': formatDateForExport(app.createdAt),
+            'Last Updated': formatDateForExport(app.updatedAt)
+        }));
+
+        // Create HTML table for Excel
+        let htmlContent = `
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Appointments Export</title>
+                <style>
+                    th { background-color: #4f46e5; color: white; padding: 8px; }
+                    td { padding: 6px; border: 1px solid #ddd; }
+                    table { border-collapse: collapse; width: 100%; }
+                </style>
+            </head>
+            <body>
+                <h2>Appointments Report</h2>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+                <p>Total Records: ${dataToExport.length}</p>
+                <table border="1">
+                    <thead>
+                        <tr>
+                            ${headers.map(h => `<th>${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => `
+                            <tr>
+                                ${Object.values(row).map(val => `<td>${String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `appointments_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xls`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        setSuccessMessage(`Exported ${dataToExport.length} appointments to Excel`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
     // Bulk delete functions
     const handleSelectAppointment = (appointmentId) => {
         setSelectedAppointments(prev => 
@@ -160,10 +255,8 @@ function MAppointments() {
             const result = await response.json();
 
             if (result.success) {
-                // Remove deleted appointments from state
                 setAppointments(prev => prev.filter(app => !selectedAppointments.includes(app._id)));
                 
-                // Clear new appointments if showing
                 if (showNewAppointments) {
                     setNewAppointments(prev => prev.filter(app => !selectedAppointments.includes(app._id)));
                 }
@@ -171,12 +264,10 @@ function MAppointments() {
                 setSuccessMessage(`Successfully deleted ${result.data?.deletedCount || selectedAppointments.length} appointment(s)`);
                 setTimeout(() => setSuccessMessage(''), 5000);
                 
-                // Clear selections and exit select mode
                 setSelectedAppointments([]);
                 setIsSelectMode(false);
                 setShowBulkDeleteModal(false);
 
-                // Adjust pagination if needed
                 const remainingItems = filteredAppointments.length - selectedAppointments.length;
                 const newTotalPages = Math.ceil(remainingItems / itemsPerPage);
                 if (currentPage > newTotalPages && currentPage > 1) {
@@ -209,7 +300,7 @@ function MAppointments() {
     };
 
     // Update appointment status
-    const handleUpdateAppointment = async (appointmentId, status, notes, sendEmail = true, adminMessage = '') => {
+    const handleUpdateAppointment = async (appointmentId, status, notes, sendEmail = true, adminMessage = '', rescheduleData = null) => {
         try {
             setUpdatingId(appointmentId);
             const token = localStorage.getItem('token');
@@ -220,20 +311,28 @@ function MAppointments() {
                 return;
             }
 
+            const payload = { status, notes, sendEmail, adminMessage };
+            
+            if (rescheduleData && status === 'rescheduled') {
+                payload.rescheduleDate = rescheduleData.date;
+                payload.rescheduleTime = rescheduleData.time;
+                payload.rescheduleDuration = rescheduleData.duration;
+            }
+
             const response = await fetch(`http://localhost:5000/api/appointments/update/${appointmentId}`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status, notes, sendEmail, adminMessage })
+                body: JSON.stringify(payload)
             });
 
             const result = await response.json();
 
             if (result.success) {
                 setAppointments(prev => prev.map(app =>
-                    app._id === appointmentId ? { ...app, status, notes } : app
+                    app._id === appointmentId ? { ...app, ...result.data } : app
                 ));
 
                 if (sendEmail && status !== result.data?.status) {
@@ -264,13 +363,25 @@ function MAppointments() {
 
     const handleSaveEdit = async (data) => {
         if (selectedAppointment && selectedAppointment._id) {
+            let rescheduleData = null;
+            if (data.status === 'rescheduled' && data.rescheduleDate && data.rescheduleTime) {
+                rescheduleData = {
+                    date: data.rescheduleDate,
+                    time: data.rescheduleTime,
+                    duration: data.rescheduleDuration
+                };
+            }
+            
             await handleUpdateAppointment(
                 selectedAppointment._id, 
                 data.status, 
                 data.notes,
                 data.sendEmail,
-                data.adminMessage
+                data.adminMessage,
+                rescheduleData
             );
+
+            await fetchAppointments();
             setShowEditModal(false);
         }
     };
@@ -558,16 +669,25 @@ function MAppointments() {
                 </div>
             )}
 
-            {/* Header */}
+            {/* Header with Export Button */}
             <header className="mb-8">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                     <div>
                         <p className="text-sm font-light text-gray-500 mb-2 tracking-wider">APPOINTMENTS</p>
                         <p className="text-gray-700 font-light">MANAGE YOUR PHOTOGRAPHY APPOINTMENTS</p>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                        <FontAwesomeIcon icon={faCamera} />
-                        <span>Total: {appointments.length}</span>
+                    <div className="flex items-center gap-3">
+                        <div className="text-sm text-gray-500">
+                            <FontAwesomeIcon icon={faCamera} className="mr-1" />
+                            Total: {appointments.length}
+                        </div>
+                        <button
+                            onClick={exportToExcel}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors flex items-center gap-2 bg-white"
+                        >
+                            <FontAwesomeIcon icon={faFileExcel} className="text-green-700" />
+                            Export to Excel
+                        </button>
                     </div>
                 </div>
             </header>

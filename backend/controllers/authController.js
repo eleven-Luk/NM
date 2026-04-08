@@ -8,6 +8,8 @@ dotenv.config();
 
 // Store OTPs temporarily
 const otpStore = new Map();
+// Store trusted devices (user email + device fingerprint)
+const trustedDevices = new Map();
 
 // Email transporter configuration
 const transporter = nodemailer.createTransport({
@@ -23,6 +25,12 @@ const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
         expiresIn: '1d' // Token expires in 1 day
     });
+};
+
+// Generate device fingerprint (simple version - can be enhanced)
+const generateDeviceFingerprint = (req) => {
+    // Combine user agent and IP address (or use a more sophisticated method)
+    return `${req.headers['user-agent'] || ''}_${req.ip || req.connection.remoteAddress}`;
 };
 
 // Generate 6-digit OTP
@@ -126,7 +134,11 @@ export const loginUser = async (req, res) => {
             });
         }
         
-        const { email, password, otp } = req.body;
+        const { email, password, otp, rememberDevice } = req.body;
+        
+        // Generate device fingerprint
+        const deviceFingerprint = generateDeviceFingerprint(req);
+        const trustKey = `${email}_${deviceFingerprint}`;
 
         const user = await User.findOne({ email }).select('+password');
 
@@ -144,6 +156,10 @@ export const loginUser = async (req, res) => {
                 message: 'Invalid credentials'
             });
         }
+
+        // Check if device is trusted (OTP not needed for trusted devices within 1 day)
+        const trustedDevice = trustedDevices.get(trustKey);
+        const isDeviceTrusted = trustedDevice && trustedDevice.expires > Date.now();
 
         // If OTP is provided, verify it
         if (otp) {
@@ -174,9 +190,34 @@ export const loginUser = async (req, res) => {
             // Clear OTP after successful verification
             otpStore.delete(email);
             
-            // Generate token (expires in 1 day)
+            // Trust this device for 1 day if requested
+            if (rememberDevice) {
+                trustedDevices.set(trustKey, {
+                    email,
+                    deviceFingerprint,
+                    expires: Date.now() + 24 * 60 * 60 * 1000 // 1 day
+                });
+            }
+            
+            // Generate token
             const token = generateToken(user._id, user.role);
             
+            return res.status(200).json({
+                success: true,
+                token,
+                user: {
+                    id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    role: user.role
+                }
+            });
+        }
+        
+        // If device is trusted and within 1 day, skip OTP
+        if (isDeviceTrusted) {
+            console.log(`Device trusted for ${email}, skipping OTP`);
+            const token = generateToken(user._id, user.role);
             return res.status(200).json({
                 success: true,
                 token,

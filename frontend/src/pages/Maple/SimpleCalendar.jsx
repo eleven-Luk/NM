@@ -10,7 +10,8 @@ import {
     faSave,
     faTrash,
     faClock,
-    faInfoCircle
+    faInfoCircle,
+    faCalendarWeek
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModalApp from '../../components/modals/Maple/appointments/ViewModal.jsx';
 
@@ -37,6 +38,7 @@ function SimpleCalendar({ onAppointmentClick, onDateSelect, selectedDate }) {
             const token = localStorage.getItem('token');
             if (!token) return;
 
+            // Fetch confirmed and rescheduled appointments
             const response = await fetch('http://localhost:5000/api/appointments/confirmed', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -352,6 +354,31 @@ function SimpleCalendar({ onAppointmentClick, onDateSelect, selectedDate }) {
         handleViewAppointment(appointment);
     };
 
+    // Get appointment style based on status
+    const getAppointmentStyle = (appointment) => {
+        if (appointment.status === 'rescheduled') {
+            return {
+                bgColor: 'bg-purple-500',
+                hoverColor: 'hover:bg-purple-600',
+                icon: faCalendarWeek,
+                label: 'Rescheduled'
+            };
+        } else if (appointment.status === 'confirmed') {
+            return {
+                bgColor: 'bg-blue-500',
+                hoverColor: 'hover:bg-blue-600',
+                icon: faClock,
+                label: 'Confirmed'
+            };
+        }
+        return {
+            bgColor: 'bg-gray-500',
+            hoverColor: 'hover:bg-gray-600',
+            icon: faClock,
+            label: 'Appointment'
+        };
+    };
+
     if (loading) {
         return (
             <div className="bg-white border border-gray-200 rounded-xl p-6 sm:p-8 text-center">
@@ -468,20 +495,24 @@ function SimpleCalendar({ onAppointmentClick, onDateSelect, selectedDate }) {
                                                 {selected && !unavailable && <span className="ml-0.5 text-[8px] sm:text-[10px] text-blue-500">✓</span>}
                                             </div>
                                             
-                                            {dayAppointments.map(app => (
-                                                <div
-                                                    key={app._id}
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleViewClick(app);
-                                                    }}
-                                                    className="text-[8px] sm:text-[10px] bg-blue-500 text-white rounded px-0.5 sm:px-1 py-0.5 mb-0.5 truncate cursor-pointer hover:bg-blue-600"
-                                                    title={`${app.name} - ${app.preferredTime}`}
-                                                >
-                                                    <FontAwesomeIcon icon={faClock} className="text-[6px] sm:text-[8px] mr-0.5" />
-                                                    {formatTime(app.preferredTime)} - {app.name.split(' ')[0]}
-                                                </div>
-                                            ))}
+                                            {dayAppointments.map(app => {
+                                                const style = getAppointmentStyle(app);
+                                                return (
+                                                    <div
+                                                        key={app._id}
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            handleViewClick(app);
+                                                        }}
+                                                        className={`text-[8px] sm:text-[10px] ${style.bgColor} text-white rounded px-0.5 sm:px-1 py-0.5 mb-0.5 truncate cursor-pointer ${style.hoverColor} transition-colors`}
+                                                        title={`${app.name} - ${app.preferredTime} (${style.label})`}
+                                                    >
+                                                        <FontAwesomeIcon icon={style.icon} className="text-[6px] sm:text-[8px] mr-0.5" />
+                                                        {formatTime(app.preferredTime)} - {app.name.split(' ')[0]}
+                                                        {app.status === 'rescheduled' && <span className="ml-0.5 text-[8px]">🔄</span>}
+                                                    </div>
+                                                );
+                                            })}
                                             
                                             {unavailable && unavailableReasonText && (
                                                 <div className="text-[8px] sm:text-[10px] text-red-600 mt-0.5 truncate">❌ {unavailableReasonText.substring(0, 15)}</div>
@@ -507,7 +538,11 @@ function SimpleCalendar({ onAppointmentClick, onDateSelect, selectedDate }) {
                     <div className="flex flex-wrap gap-2 sm:gap-3 text-[8px] sm:text-[10px]">
                         <div className="flex items-center gap-1">
                             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-blue-500 rounded"></div>
-                            <span className="text-gray-600">Scheduled</span>
+                            <span className="text-gray-600">Confirmed</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                            <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-500 rounded"></div>
+                            <span className="text-gray-600">Rescheduled</span>
                         </div>
                         <div className="flex items-center gap-1">
                             <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-red-500 rounded"></div>

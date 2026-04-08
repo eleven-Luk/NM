@@ -14,7 +14,8 @@ import {
     faShieldAlt,
     faArrowLeft,
     faUser,
-    faCheckCircle
+    faCheckCircle,
+    faLaptop
 } from '@fortawesome/free-solid-svg-icons';
 
 function Login() {
@@ -30,6 +31,7 @@ function Login() {
     const [requiresOTP, setRequiresOTP] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
     const [resendLoading, setResendLoading] = useState(false);
+    const [rememberDevice, setRememberDevice] = useState(true); // Default to true
     const [emailFocused, setEmailFocused] = useState(false);
     const [passwordFocused, setPasswordFocused] = useState(false);
     const navigate = useNavigate();
@@ -106,6 +108,7 @@ function Login() {
                     return;
                 }
                 payload.otp = otpValue;
+                payload.rememberDevice = rememberDevice; // Send remember device preference
             }
             
             const response = await axios.post('http://localhost:5000/api/auth/login', payload);
@@ -236,41 +239,61 @@ function Login() {
                                     </div>
                                 </div>
                             ) : (
-                                <div>
-                                    <label className='block text-sm font-medium text-gray-700 mb-2'>
-                                        Verification code
-                                    </label>
-                                    <div className='flex gap-2 justify-center mb-3'>
-                                        {formData.otp.map((digit, index) => (
-                                            <input
-                                                key={index}
-                                                id={`otp-${index}`}
-                                                type="text"
-                                                maxLength="1"
-                                                value={digit}
-                                                onChange={(e) => handleOTPChange(index, e.target.value)}
-                                                className="w-10 h-12 text-center text-lg font-medium border border-gray-200 rounded-lg focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
-                                                autoFocus={index === 0}
-                                            />
-                                        ))}
+                                <>
+                                    <div>
+                                        <label className='block text-sm font-medium text-gray-700 mb-2'>
+                                            Verification code
+                                        </label>
+                                        <div className='flex gap-2 justify-center mb-3'>
+                                            {formData.otp.map((digit, index) => (
+                                                <input
+                                                    key={index}
+                                                    id={`otp-${index}`}
+                                                    type="text"
+                                                    maxLength="1"
+                                                    value={digit}
+                                                    onChange={(e) => handleOTPChange(index, e.target.value)}
+                                                    className="w-10 h-12 text-center text-lg font-medium border border-gray-200 rounded-lg focus:border-gray-400 focus:outline-none focus:ring-1 focus:ring-gray-200 transition-all"
+                                                    autoFocus={index === 0}
+                                                />
+                                            ))}
+                                        </div>
+                                        <div className='flex justify-center'>
+                                            <button
+                                                type="button"
+                                                onClick={handleResendOTP}
+                                                disabled={resendTimer > 0 || resendLoading}
+                                                className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
+                                            >
+                                                {resendLoading ? (
+                                                    <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
+                                                ) : resendTimer > 0 ? (
+                                                    <span>Resend code in {resendTimer}s</span>
+                                                ) : (
+                                                    'Resend code'
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className='flex justify-center'>
-                                        <button
-                                            type="button"
-                                            onClick={handleResendOTP}
-                                            disabled={resendTimer > 0 || resendLoading}
-                                            className="text-sm text-gray-500 hover:text-gray-700 disabled:opacity-50 transition-colors"
-                                        >
-                                            {resendLoading ? (
-                                                <FontAwesomeIcon icon={faSpinner} className="animate-spin" />
-                                            ) : resendTimer > 0 ? (
-                                                <span>Resend code in {resendTimer}s</span>
-                                            ) : (
-                                                'Resend code'
-                                            )}
-                                        </button>
+
+                                    {/* Remember this device checkbox */}
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <input
+                                            type="checkbox"
+                                            id="rememberDevice"
+                                            checked={rememberDevice}
+                                            onChange={(e) => setRememberDevice(e.target.checked)}
+                                            className="w-4 h-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
+                                        />
+                                        <label htmlFor="rememberDevice" className="text-sm text-gray-600 cursor-pointer">
+                                            <FontAwesomeIcon icon={faLaptop} className="mr-1 text-xs" />
+                                            Remember this device for 1 day
+                                        </label>
                                     </div>
-                                </div>
+                                    <p className="text-xs text-gray-400 mt-1">
+                                        You won't need to enter a verification code on this device for 1 day
+                                    </p>
+                                </>
                             )}
 
                             {/* Submit Button */}

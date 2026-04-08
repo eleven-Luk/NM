@@ -262,6 +262,7 @@ export const createAppointment = async (req, res) => {
 // ==================== READ ====================
 export const getAppointments = async (req, res) => {
     try {
+        // Include all statuses including rescheduled
         const appointments = await Appointment.find({
             $or: [
                 { deletedAt: null }, 
@@ -316,6 +317,7 @@ export const getAppointmentsByStatus = async (req, res) => {
     try {
         const { status } = req.params;
         
+        // Include rescheduled in valid statuses
         const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled', 'rescheduled'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({
@@ -348,14 +350,15 @@ export const getConfirmedAppointments = async (req, res) => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
+        // ✅ FIX: Include both 'confirmed' AND 'rescheduled' appointments
         const appointments = await Appointment.find({
-            status: 'confirmed',
+            status: { $in: ['confirmed', 'rescheduled'] },  // <-- ADD 'rescheduled'
             preferredDate: { $gte: today }
         }).sort({ preferredDate: 1, preferredTime: 1 });
 
         res.status(200).json({
             success: true,
-            message: 'Confirmed appointments retrieved successfully',
+            message: 'Confirmed and rescheduled appointments retrieved successfully',
             data: appointments,
             count: appointments.length
         });
@@ -444,7 +447,7 @@ export const confirmAppointment = async (req, res) => {
 export const updateAppointment = async (req, res) => {
     try {
         const { appointmentId } = req.params;
-        const { status, notes, sendEmail, adminMessage } = req.body;
+        const { status, notes, sendEmail, adminMessage, rescheduleDate, rescheduleTime, rescheduleDuration } = req.body;
         
         const appointment = await Appointment.findById(appointmentId);
         
@@ -456,16 +459,31 @@ export const updateAppointment = async (req, res) => {
         }
         
         const oldStatus = appointment.status;
-        console.log('Old status:', oldStatus);
         
-        // Update appointment
+        // Update basic fields
         appointment.status = status;
         if (notes) appointment.notes = notes;
         appointment.updatedAt = Date.now();
         
+        // Handle reschedule - update the date and time
+        if (status === 'rescheduled' && rescheduleDate && rescheduleTime) {
+            appointment.preferredDate = new Date(rescheduleDate);
+            appointment.preferredTime = rescheduleTime;
+            if (rescheduleDuration) {
+                appointment.durationHours = parseInt(rescheduleDuration);
+            }
+            appointment.rescheduledDate = new Date();
+            console.log(`✅ Appointment rescheduled to ${rescheduleDate} at ${rescheduleTime}`);
+        } else {
+            console.log('Not rescheduling - conditions not met');
+            console.log('status === rescheduled?', status === 'rescheduled');
+            console.log('rescheduleDate:', rescheduleDate);
+            console.log('rescheduleTime:', rescheduleTime);
+        }
+        
         await appointment.save();
         
-        // Send email ONLY if sendEmail is true AND status changed
+        // Send email notification if requested and status changed
         const shouldSendEmail = sendEmail === true && oldStatus !== status;
         console.log('Should send email:', shouldSendEmail);
         
@@ -476,8 +494,6 @@ export const updateAppointment = async (req, res) => {
             } catch (emailError) {
                 console.error('❌ Email failed:', emailError);
             }
-        } else {
-            console.log(`📧 Email NOT sent - sendEmail: ${sendEmail}, statusChanged: ${oldStatus !== status}`);
         }
         
         res.status(200).json({

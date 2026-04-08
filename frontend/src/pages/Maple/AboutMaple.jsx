@@ -34,13 +34,21 @@ import Studio from '../../assets/MaplePic4.png'
 import NewbornSession from '../../assets/videos/Vid1.mp4';
 import MaternitySession from '../../assets/videos/Vid3.mp4';
 
+// Modal 
+import MContactModal from '../../components/modals/MContactModal.jsx';
+
+
 function AboutMaple() {
     const [playingVideo, setPlayingVideo] = useState(null);
     const [mutedStates, setMutedStates] = useState({});
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [showPlayButton, setShowPlayButton] = useState({});
     const videoRefs = useRef({});
     const modalVideoRef = useRef(null);
+    const hoverTimeoutRef = useRef(null);
+
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Check if mobile on mount and resize
     useEffect(() => {
@@ -50,6 +58,15 @@ function AboutMaple() {
         checkMobile();
         window.addEventListener('resize', checkMobile);
         return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    // Clean up hover timeout on unmount
+    useEffect(() => {
+        return () => {
+            if (hoverTimeoutRef.current) {
+                clearTimeout(hoverTimeoutRef.current);
+            }
+        };
     }, []);
 
     // Behind the scenes videos
@@ -62,17 +79,15 @@ function AboutMaple() {
             date: "March 2026",
             location: "Studio",
             category: "Newborn",
-            duration: "2:30"
         },
         {
             id: 2,
             video: MaternitySession,
-            title: "Maternity Glow Session",
+            title: "Newborn Glow Session",
             description: "Celebrating the beauty of new life and motherhood",
             date: "March 2026",
             location: "Studio",
-            category: "Maternity",
-            duration: "2:15"
+            category: "Newborn",
         }
     ];
 
@@ -83,13 +98,48 @@ function AboutMaple() {
         if (playingVideo === videoId) {
             videoElement.pause();
             setPlayingVideo(null);
+            setShowPlayButton(prev => ({ ...prev, [videoId]: true }));
         } else {
             if (playingVideo && videoRefs.current[playingVideo]) {
                 videoRefs.current[playingVideo].pause();
+                setShowPlayButton(prev => ({ ...prev, [playingVideo]: true }));
             }
             videoElement.play();
             setPlayingVideo(videoId);
+            setShowPlayButton(prev => ({ ...prev, [videoId]: false }));
         }
+    };
+
+    // Handle video hover - always show button on hover, regardless of playing state
+    const handleVideoMouseEnter = (videoId) => {
+        if (hoverTimeoutRef.current) {
+            clearTimeout(hoverTimeoutRef.current);
+        }
+        // Always show button on hover
+        setShowPlayButton(prev => ({ ...prev, [videoId]: true }));
+    };
+
+    const handleVideoMouseLeave = (videoId) => {
+        hoverTimeoutRef.current = setTimeout(() => {
+            // Hide button when cursor leaves
+            setShowPlayButton(prev => ({ ...prev, [videoId]: false }));
+        }, 300);
+    };
+
+    // Listen to video events to update play button state
+    const handleVideoPlay = (videoId) => {
+        setPlayingVideo(videoId);
+        setShowPlayButton(prev => ({ ...prev, [videoId]: false }));
+    };
+
+    const handleVideoPause = (videoId) => {
+        setPlayingVideo(null);
+        setShowPlayButton(prev => ({ ...prev, [videoId]: true }));
+    };
+
+    const handleVideoEnded = (videoId) => {
+        setPlayingVideo(null);
+        setShowPlayButton(prev => ({ ...prev, [videoId]: true }));
     };
 
     const toggleMute = (videoId, e) => {
@@ -103,7 +153,10 @@ function AboutMaple() {
     const openVideoModal = (video) => {
         setSelectedVideo(video);
         if (playingVideo) {
-            videoRefs.current[playingVideo]?.pause();
+            const currentVideo = videoRefs.current[playingVideo];
+            if (currentVideo) {
+                currentVideo.pause();
+            }
             setPlayingVideo(null);
         }
     };
@@ -152,7 +205,6 @@ function AboutMaple() {
                         <FontAwesomeIcon icon={faArrowLeft} className='w-3 h-3 sm:w-4 sm:h-4' />
                         <span className='text-xs sm:text-sm font-medium hidden sm:inline'>Back to Home</span>
                     </button>
-                    <p className='text-xs sm:text-sm text-white py-1 sm:py-2 font-extralight hidden sm:block'></p>
                 </div>
 
                 {/* Button for Samples - Responsive positioning */}
@@ -164,7 +216,6 @@ function AboutMaple() {
                         <span className='text-xs sm:text-sm font-medium hidden sm:inline'>View Samples</span>
                         <FontAwesomeIcon icon={faArrowRight} className='w-3 h-3 sm:w-4 sm:h-4' />
                     </button>
-                    <p className='text-xs sm:text-sm text-white py-1 sm:py-2 font-extralight hidden sm:block'></p>
                 </div>
                 
                 {/* Content - Responsive padding and text sizes */}
@@ -233,7 +284,7 @@ function AboutMaple() {
                     <h2 className='text-2xl sm:text-3xl font-light text-gray-800 mb-3 sm:mb-4 text-center'>Behind the Lens</h2>
                     <div className='w-16 h-0.5 bg-gray-400 mb-4 mx-auto'></div>
                     <p className='text-gray-500 text-center mb-8 sm:mb-12 max-w-2xl mx-auto text-sm sm:text-base px-4'>
-                        Click play to watch inline • Tap video to view full screen
+                        Hover over video to see play button • Click play to watch • Tap video to view full screen
                     </p>
                     
                     <div className='grid md:grid-cols-2 gap-4 sm:gap-6 max-w-6xl mx-auto'>
@@ -245,6 +296,8 @@ function AboutMaple() {
                                 <div 
                                     className='relative aspect-video bg-black cursor-pointer'
                                     onClick={() => openVideoModal(video)}
+                                    onMouseEnter={() => handleVideoMouseEnter(video.id)}
+                                    onMouseLeave={() => handleVideoMouseLeave(video.id)}
                                 >
                                     <video 
                                         ref={el => videoRefs.current[video.id] = el}
@@ -252,21 +305,26 @@ function AboutMaple() {
                                         loop
                                         muted={mutedStates[video.id] || false}
                                         playsInline
+                                        onPlay={() => handleVideoPlay(video.id)}
+                                        onPause={() => handleVideoPause(video.id)}
+                                        onEnded={() => handleVideoEnded(video.id)}
                                         className='w-full h-full object-cover'
                                     />
                                     
-                                    {/* Play Button */}
-                                    <div className='absolute inset-0 bg-black/20 flex items-center justify-center'>
-                                        <button 
-                                            onClick={(e) => togglePlay(video.id, e)}
-                                            className='w-12 h-12 sm:w-16 sm:h-16 bg-white/90 rounded-full flex items-center justify-center shadow-xl hover:bg-white transition-colors'
-                                        >
-                                            <FontAwesomeIcon 
-                                                icon={playingVideo === video.id ? faPause : faPlay} 
-                                                className={playingVideo === video.id ? 'text-gray-800 text-xl sm:text-2xl' : 'text-gray-800 text-xl sm:text-2xl ml-0.5 sm:ml-1'} 
-                                            />
-                                        </button>
-                                    </div>
+                                    {/* Play Button - Shows on hover only */}
+                                    {showPlayButton[video.id] && (
+                                        <div className='absolute inset-0 bg-black/30 flex items-center justify-center transition-opacity duration-300'>
+                                            <button 
+                                                onClick={(e) => togglePlay(video.id, e)}
+                                                className='w-12 h-12 sm:w-16 sm:h-16 bg-white/90 rounded-full flex items-center justify-center shadow-xl hover:bg-white hover:scale-110 transition-all duration-200'
+                                            >
+                                                <FontAwesomeIcon 
+                                                    icon={playingVideo === video.id ? faPause : faPlay} 
+                                                    className='text-gray-800 text-xl sm:text-2xl ml-0.5 sm:ml-1' 
+                                                />
+                                            </button>
+                                        </div>
+                                    )}
                                     
                                     {/* Sound Control */}
                                     <button 
@@ -497,7 +555,7 @@ function AboutMaple() {
                             Let's capture your family's precious moments together. Book a session today.
                         </p>
                         <button 
-                            onClick={handleBookSession}
+                            onClick={() => setIsModalOpen(true)}
                             className='bg-white text-gray-800 px-6 sm:px-8 py-2 sm:py-3 rounded-lg font-medium hover:bg-gray-300 transition-colors text-sm sm:text-base'
                         >
                             Book a Session
@@ -505,6 +563,7 @@ function AboutMaple() {
                     </div>
                 </div>
             </div>
+            <MContactModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </div>
     );
 }

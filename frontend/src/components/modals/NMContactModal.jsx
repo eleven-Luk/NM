@@ -1,4 +1,3 @@
-// components/modals/NMContactModal.jsx
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -10,7 +9,8 @@ import {
     faEnvelope,
     faPhone,
     faUser,
-    faExclamationTriangle
+    faExclamationTriangle,
+    faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -31,6 +31,9 @@ function NMContactModal({ isOpen, onClose, job }) {
     const [fileName, setFileName] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
 
+    // Authorization state
+    const [authorized, setAuthorized] = useState(false);
+
     // Reset form when modal closes
     useEffect(() => {
         if (!isOpen) {
@@ -47,6 +50,7 @@ function NMContactModal({ isOpen, onClose, job }) {
             setError('');
             setSuccess('');
             setValidationErrors({});
+            setAuthorized(false);
         }
     }, [isOpen]);
 
@@ -67,13 +71,11 @@ function NMContactModal({ isOpen, onClose, job }) {
             const file = files[0];
             setFormData(prev => ({ ...prev, [name]: file }));
             setFileName(file?.name || '');
-            // Clear error for resume when file is selected
             if (file) {
                 setValidationErrors(prev => ({ ...prev, resume: '' }));
             }
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
-            // Clear error for the field being typed in
             if (validationErrors[name]) {
                 setValidationErrors(prev => ({ ...prev, [name]: '' }));
             }
@@ -105,50 +107,43 @@ function NMContactModal({ isOpen, onClose, job }) {
         if (!formData.resume) {
             errors.resume = 'Resume/CV is required to complete your application';
         } else {
-            // Check file size (5MB max)
             if (formData.resume.size > 5 * 1024 * 1024) {
                 errors.resume = 'File size must be less than 5MB';
             }
             
-            // Check file type
             const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
             if (!allowedTypes.includes(formData.resume.type)) {
                 errors.resume = 'Only PDF, DOC, and DOCX files are allowed';
             }
         }
+
+        // Add authorization validation
+        if (!authorized) {
+            errors.authorized = 'Please authorize to proceed';
+        }
         
         setValidationErrors(errors);
-        
-        // Return true if no errors
         return Object.keys(errors).length === 0;
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        console.log('Form submitted');
-        
         if (!validateForm()) {
             console.log('Validation failed:', validationErrors);
             return;
         }
         
-        // Validate job ID
         if (!job || !job._id) {
             setError('Invalid job selection. Please try again.');
-            console.error('❌ No job or job ID:', job);
             return;
         }
         
-        // Check if job ID is a valid MongoDB ObjectId (24 hex characters)
         const isValidObjectId = /^[0-9a-fA-F]{24}$/.test(job._id);
         if (!isValidObjectId) {
             setError(`Invalid job ID format: ${job._id}`);
-            console.error('❌ Invalid ObjectId format:', job._id);
             return;
         }
-        
-        console.log('✅ Valid job ID:', job._id);
         
         setLoading(true);
         setError('');
@@ -164,24 +159,12 @@ function NMContactModal({ isOpen, onClose, job }) {
             formDataToSend.append('resume', formData.resume);
             formDataToSend.append('message', formData.message || '');
             
-            console.log('📤 Sending application with data:', {
-                firstName: formData.firstName,
-                middleName: formData.middleName,
-                lastName: formData.lastName,
-                email: formData.email,
-                phone: formData.phone,
-                jobId: job._id,
-                message: formData.message,
-                resume: formData.resume?.name
-            });
-            
             const response = await fetch('http://localhost:5000/api/applications/create', {
                 method: 'POST',
                 body: formDataToSend
             });
             
             const result = await response.json();
-            console.log('📥 Server response:', result);
             
             if (!response.ok) {
                 throw new Error(result.message || 'Failed to submit application');
@@ -204,15 +187,8 @@ function NMContactModal({ isOpen, onClose, job }) {
         }
     };
 
-    // Helper to check if a field has error
-    const hasError = (field) => {
-        return !!validationErrors[field];
-    };
-
-    // Helper to get error message
-    const getError = (field) => {
-        return validationErrors[field] || '';
-    };
+    const hasError = (field) => !!validationErrors[field];
+    const getError = (field) => validationErrors[field] || '';
 
     return (
         <BaseModal
@@ -271,7 +247,7 @@ function NMContactModal({ isOpen, onClose, job }) {
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                             <FontAwesomeIcon icon={faUser} className="mr-1 text-gray-400 text-xs" />
-                            Middle Name *
+                            Middle Name
                         </label>
                         <input
                             type="text"
@@ -288,24 +264,25 @@ function NMContactModal({ isOpen, onClose, job }) {
                         )}
                     </div>
                 </div>
+                
                 <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Last Name *
-                        </label>
-                        <input
-                            type="text"
-                            name="lastName"
-                            value={formData.lastName}
-                            onChange={handleChange}
-                            className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
-                                hasError('lastName') ? 'border-red-400' : 'border-gray-300'
-                            }`}
-                            disabled={loading}
-                        />
-                        {hasError('lastName') && (
-                            <p className="text-xs text-red-500 mt-1">{getError('lastName')}</p>
-                        )}
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Last Name *
+                    </label>
+                    <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        className={`w-full px-3 py-2 border rounded-lg focus:ring-orange-400 focus:border-orange-400 ${
+                            hasError('lastName') ? 'border-red-400' : 'border-gray-300'
+                        }`}
+                        disabled={loading}
+                    />
+                    {hasError('lastName') && (
+                        <p className="text-xs text-red-500 mt-1">{getError('lastName')}</p>
+                    )}
+                </div>
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -394,6 +371,32 @@ function NMContactModal({ isOpen, onClose, job }) {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-orange-400 focus:border-orange-400 resize-none"
                         disabled={loading}
                     />
+                </div>
+
+                {/* Authorization Agreement */}
+                <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={authorized}
+                            onChange={(e) => setAuthorized(e.target.checked)}
+                            className="mt-0.5 w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500"
+                        />
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <FontAwesomeIcon icon={faShieldAlt} className="text-orange-500 text-sm" />
+                                <span className="font-medium text-gray-900 text-sm">Authorization Agreement</span>
+                            </div>
+                            <p className="text-xs text-gray-600 mt-1">
+                                I authorize N&M Staffing Services to process my job application and contact me regarding 
+                                potential employment opportunities. I confirm that the information provided is accurate 
+                                and complete to the best of my knowledge.
+                            </p>
+                        </div>
+                    </label>
+                    {validationErrors.authorized && (
+                        <p className="text-xs text-red-500 mt-2">{validationErrors.authorized}</p>
+                    )}
                 </div>
 
                 {error && (

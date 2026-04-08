@@ -1,4 +1,3 @@
-// components/modals/Maple/MContactModal.jsx
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -13,7 +12,8 @@ import {
     faMapMarkerAlt,
     faBox,
     faBan,
-    faSpinner
+    faSpinner,
+    faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PublicCalendar from '../../components/calendar/PublicCalendar';
@@ -42,6 +42,9 @@ function MContactModal({ isOpen, onClose, appointment }) {
     const [availableTimeSlots, setAvailableTimeSlots] = useState({});
     const [checkingAvailability, setCheckingAvailability] = useState(false);
     const [selectedTimeRange, setSelectedTimeRange] = useState({ start: '', end: '' });
+
+    // Authorization state
+    const [authorized, setAuthorized] = useState(false);
 
     // Location options
     const locationOptions = [
@@ -205,6 +208,11 @@ function MContactModal({ isOpen, onClose, appointment }) {
             errors.location = 'Please select a location';
         } else if (formData.locationType === 'other' && !formData.locationOther?.trim()) {
             errors.location = 'Please enter the location';
+        }
+        
+        // Add authorization validation
+        if (!authorized) {
+            errors.authorized = 'Please authorize to proceed';
         }
 
         setValidationErrors(errors);
@@ -508,7 +516,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
                                     <input
                                         type='text'
                                         name='locationOutdoor'
-                                        value={formData.locationType} 
+                                        value={formData.locationOutdoor || ''} 
                                         onChange={handleChange}
                                         placeholder="Enter your location (address, landmark, etc.)"
                                         className={`w-full p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
@@ -522,7 +530,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
                                     <input
                                         type='text'
                                         name='locationClientHome'
-                                        value={formData.locationType}
+                                        value={formData.locationClientHome || ''}
                                         onChange={handleChange}
                                         placeholder="Enter your location (address, landmark, etc.)"
                                         className={`w-full p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
@@ -556,6 +564,31 @@ function MContactModal({ isOpen, onClose, appointment }) {
                                     className={`w-full pl-10 p-2.5 border ${styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing} resize-none`}
                                     placeholder='Tell us about your vision, specific requirements, or any special requests...' />
                             </div>
+                        </div>
+
+                        {/* Authorization Agreement */}
+                        <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                            <label className="flex items-start gap-3 cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={authorized}
+                                    onChange={(e) => setAuthorized(e.target.checked)}
+                                    className="mt-0.5 w-4 h-4 text-gray-600 rounded border-gray-300 focus:ring-gray-500"
+                                />
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <FontAwesomeIcon icon={faShieldAlt} className="text-gray-500 text-sm" />
+                                        <span className="font-medium text-gray-900 text-sm">Authorization Agreement</span>
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-1">
+                                        I authorize Maple Street Photography to contact me regarding my appointment booking. 
+                                        I confirm that the information provided is accurate and complete to the best of my knowledge.
+                                    </p>
+                                </div>
+                            </label>
+                            {validationErrors.authorized && (
+                                <p className={`text-xs ${styles.error} mt-2`}>{validationErrors.authorized}</p>
+                            )}
                         </div>
 
                         {/* Error Message */}

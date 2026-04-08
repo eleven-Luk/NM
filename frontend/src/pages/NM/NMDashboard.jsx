@@ -239,18 +239,6 @@ const NMDashboard = () => {
 
     return (
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
-            {/* Back to Home Button */}
-            <div className='fixed top-3 left-3 sm:top-4 sm:left-4 md:top-6 md:left-6 z-20'>
-                <button
-                    onClick={goToHomepage}
-                    className='flex items-center gap-1 sm:gap-2 bg-white/90 hover:bg-white backdrop-blur-sm text-gray-700 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg shadow-md transition-all duration-300 border border-gray-200 text-xs sm:text-sm'
-                >
-                    <FontAwesomeIcon icon={faArrowLeft} className='w-3 h-3 sm:w-4 sm:h-4' />
-                    <span className='hidden sm:inline'>Back to Home</span>
-                    <span className='sm:hidden'>Home</span>
-                </button>
-            </div>
-
             {/* Header */}
             <header className="mb-6 sm:mb-8">
                 <p className="text-xs sm:text-sm font-light text-orange-400 mb-1 sm:mb-2 tracking-wider">DASHBOARD</p>

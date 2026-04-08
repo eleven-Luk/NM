@@ -12,7 +12,8 @@ import {
     faExclamationCircle,
     faBuilding,
     faBox,
-    faUserTie
+    faUserTie,
+    faShieldAlt
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx';
@@ -33,6 +34,7 @@ function UnifiedContactModal({ isOpen, onClose }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [authorized, setAuthorized] = useState(false);
 
     useEffect(() => {
         if (!isOpen) {
@@ -49,6 +51,7 @@ function UnifiedContactModal({ isOpen, onClose }) {
             });
             setError('');
             setSuccess('');
+            setAuthorized(false);
         }
     }, [isOpen]);
 
@@ -88,6 +91,11 @@ function UnifiedContactModal({ isOpen, onClose }) {
                 setError('Please enter your company name');
                 return false;
             }
+        }
+        
+        if (!authorized) {
+            setError('Please authorize to proceed');
+            return false;
         }
         
         return true;
@@ -160,7 +168,10 @@ function UnifiedContactModal({ isOpen, onClose }) {
                 accent: 'text-gray-600',
                 tabActive: 'bg-gray-600 text-white',
                 tabInactive: 'bg-gray-100 text-gray-600 hover:bg-gray-200',
-                name: 'Maple Street Photography'
+                name: 'Maple Street Photography',
+                checkboxBg: 'bg-gray-50',
+                checkboxBorder: 'border-gray-200',
+                checkboxColor: 'text-gray-600'
             }
             : {
                 buttonBg: 'bg-orange-500 hover:bg-orange-600',
@@ -169,7 +180,10 @@ function UnifiedContactModal({ isOpen, onClose }) {
                 accent: 'text-orange-600',
                 tabActive: 'bg-orange-500 text-white',
                 tabInactive: 'bg-orange-100 text-orange-600 hover:bg-orange-200',
-                name: 'N&M Staffing Services'
+                name: 'N&M Staffing Services',
+                checkboxBg: 'bg-orange-50',
+                checkboxBorder: 'border-orange-200',
+                checkboxColor: 'text-orange-600'
             };
     };
 
@@ -416,6 +430,28 @@ function UnifiedContactModal({ isOpen, onClose }) {
                         </div>
                     </div>
 
+                    {/* Authorization Agreement */}
+                    <div className={`p-3 ${currentStyle.checkboxBg} rounded-lg border ${currentStyle.checkboxBorder}`}>
+                        <label className="flex items-start gap-3 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={authorized}
+                                onChange={(e) => setAuthorized(e.target.checked)}
+                                className={`mt-0.5 w-4 h-4 ${currentStyle.checkboxColor} rounded border-gray-300 focus:ring-${currentStyle.accent === 'text-gray-600' ? 'gray' : 'orange'}-500`}
+                            />
+                            <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                    <FontAwesomeIcon icon={faShieldAlt} className={`${currentStyle.accent} text-sm`} />
+                                    <span className="font-medium text-gray-900 text-sm">Authorization Agreement</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">
+                                    I authorize {currentStyle.name} to contact me regarding my inquiry. 
+                                    I confirm that the information provided is accurate and complete to the best of my knowledge.
+                                </p>
+                            </div>
+                        </label>
+                    </div>
+
                     {/* Submit Button */}
                     <button
                         type='submit'
@@ -435,7 +471,7 @@ function UnifiedContactModal({ isOpen, onClose }) {
                     {/* Footer note */}
                     <div className='text-center pt-2'>
                         <p className={`text-xs ${currentStyle.accent} opacity-60`}>
-                            We typically respond within 24 hours via the br phone number or <br /> email address you provided.
+                            We typically respond within 24 hours via the phone number or email address you provided.
                         </p>
                     </div>
                 </form>

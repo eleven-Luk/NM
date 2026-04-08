@@ -18,7 +18,8 @@ import {
     faAngleDoubleRight,
     faCheckSquare,
     faSquare,
-    faTrash
+    faTrash,
+    faFileExcel
 } from '@fortawesome/free-solid-svg-icons';
 import ArchivedApplicantTable from "../../components/tables/ArchivedApplicantTable";
 import ViewAppModal from "../../components/modals/NM/applicants/ViewAppModal";
@@ -436,6 +437,84 @@ function NMApplicantsArchive() {
         );
     };
 
+    // Export functions
+const formatDateForExport = (dateString) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+    });
+};
+
+    const exportToExcel = () => {
+        const dataToExport = getDisplayApplications();
+        
+        const headers = [
+            'ID', 'Full Name', 'Email', 'Phone', 'Job Position', 'Status',
+            'Archived Date', 'Notes'
+        ];
+
+        const rows = dataToExport.map(app => ({
+            'ID': app._id?.slice(-8) || 'N/A',
+            'Full Name': `${app.firstName || ''} ${app.middleName || ''} ${app.lastName || ''}`.trim() || 'N/A',
+            'Email': app.email || 'N/A',
+            'Phone': app.phone || 'N/A',
+            'Job Position': app.jobId?.name || 'N/A',
+            'Status': app.status || 'N/A',
+            'Archived Date': formatDateForExport(app.archivedAt),
+            'Notes': app.notes || 'N/A'
+        }));
+
+        // Create HTML table for Excel
+        let htmlContent = `
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Archived Applicants Export</title>
+                <style>
+                    th { background-color: #f97316; color: white; padding: 8px; }
+                    td { padding: 6px; border: 1px solid #ddd; }
+                    table { border-collapse: collapse; width: 100%; }
+                </style>
+            </head>
+            <body>
+                <h2>Archived Applicants Report</h2>
+                <p>Generated on: ${new Date().toLocaleString()}</p>
+                <p>Total Records: ${dataToExport.length}</p>
+                <table border="1">
+                    <thead>
+                        <tr>
+                            ${headers.map(h => `<th>${h}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map(row => `
+                            <tr>
+                                ${Object.values(row).map(val => `<td>${String(val).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>`).join('')}
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob([htmlContent], { type: 'application/vnd.ms-excel' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.setAttribute('download', `archived_applicants_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xls`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        setSuccessMessage(`Exported ${dataToExport.length} archived applicants to Excel`);
+        setTimeout(() => setSuccessMessage(''), 3000);
+    };
+
     if (loading) return <LoadingSpinner message="Loading archived applicants..." />;
 
     return (
@@ -475,6 +554,13 @@ function NMApplicantsArchive() {
                         <FontAwesomeIcon icon={faArchive} />
                         <span>Total: {archivedApplicants.length}</span>
                     </div>
+                     <button
+                        onClick={exportToExcel}
+                        className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-green-500 hover:text-green-600 transition-colors flex items-center gap-2 bg-white"
+                    >
+                        <FontAwesomeIcon icon={faFileExcel} className="text-green-700" />
+                        Export to Excel
+                    </button>
                 </div>
             </header>
 

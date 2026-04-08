@@ -36,9 +36,10 @@ export const checkTimeSlotAvailability = async (req, res) => {
         const dayEnd = new Date(selectedDate);
         dayEnd.setHours(23, 59, 59, 999);
         
+        // ✅ Include both 'confirmed' AND 'rescheduled' appointments
         const existingAppointments = await Appointment.find({
             preferredDate: { $gte: dayStart, $lte: dayEnd },
-            status: 'confirmed'
+            status: { $in: ['confirmed', 'rescheduled'] }
         });
         
         let hasConflict = false;
@@ -170,6 +171,7 @@ export const checkAvailability = async (req, res) => {
         const endDate = new Date(date);
         endDate.setHours(23, 59, 59, 999);
 
+        // ✅ Include both 'confirmed' AND 'rescheduled' appointments
         const existingAppointment = await Appointment.findOne({
             preferredDate: { $gte: startDate, $lte: endDate },
             preferredTime: time,
@@ -214,6 +216,7 @@ export const getAvailableTimeSlots = async (req, res) => {
         const endDate = new Date(date);
         endDate.setHours(23, 59, 59, 999);
 
+        // ✅ Include both 'confirmed' AND 'rescheduled' appointments
         const bookedAppointments = await Appointment.find({
             preferredDate: { $gte: startDate, $lte: endDate },
             status: { $in: ['confirmed', 'rescheduled'] }
