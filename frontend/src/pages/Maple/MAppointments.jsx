@@ -12,7 +12,10 @@ import {
     faAngleDoubleRight,
     faChevronRight,
     faChevronLeft,
-    faAngleDoubleLeft
+    faAngleDoubleLeft,
+    faCheckSquare,
+    faSquare,
+    faTrash
 } from '@fortawesome/free-solid-svg-icons';
 
 import FilterBar from "../../components/common/FilterBar";
@@ -21,7 +24,6 @@ import AppointmentTable from "../../components/tables/AppointmentTable";
 import ViewModalApp from "../../components/modals/Maple/appointments/ViewModal.jsx";
 import DeleteModal from "../../components/modals/Maple/appointments/DeleteModal.jsx";
 import EditModal from "../../components/modals/Maple/appointments/EditModal.jsx";
-
 
 function MAppointments() {
     // State declarations
@@ -38,6 +40,12 @@ function MAppointments() {
     const [showNewAppointments, setShowNewAppointments] = useState(false);
     const [newAppointments, setNewAppointments] = useState([]);
     const [selectedAppointment, setSelectedAppointment] = useState(null);
+
+    // Bulk delete states
+    const [selectedAppointments, setSelectedAppointments] = useState([]);
+    const [isSelectMode, setIsSelectMode] = useState(false);
+    const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+    const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
 
     // Pagination states
     const [currentPage, setCurrentPage] = useState(1);
@@ -107,8 +115,101 @@ function MAppointments() {
         fetchAppointments();
     }, [fetchAppointments]);
 
+    // Bulk delete functions
+    const handleSelectAppointment = (appointmentId) => {
+        setSelectedAppointments(prev => 
+            prev.includes(appointmentId) 
+                ? prev.filter(id => id !== appointmentId)
+                : [...prev, appointmentId]
+        );
+    };
+
+    const handleSelectAll = () => {
+        if (selectedAppointments.length === currentItems.length) {
+            setSelectedAppointments([]);
+        } else {
+            setSelectedAppointments(currentItems.map(appointment => appointment._id));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedAppointments.length === 0) {
+            setError('Please select at least one appointment to delete');
+            return;
+        }
+
+        setBulkDeleteLoading(true);
+        
+        try {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('No token found. Please log in.');
+                navigate('/login');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5000/api/appointments/bulk-delete', {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ appointmentIds: selectedAppointments })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Remove deleted appointments from state
+                setAppointments(prev => prev.filter(app => !selectedAppointments.includes(app._id)));
+                
+                // Clear new appointments if showing
+                if (showNewAppointments) {
+                    setNewAppointments(prev => prev.filter(app => !selectedAppointments.includes(app._id)));
+                }
+
+                setSuccessMessage(`Successfully deleted ${result.data?.deletedCount || selectedAppointments.length} appointment(s)`);
+                setTimeout(() => setSuccessMessage(''), 5000);
+                
+                // Clear selections and exit select mode
+                setSelectedAppointments([]);
+                setIsSelectMode(false);
+                setShowBulkDeleteModal(false);
+
+                // Adjust pagination if needed
+                const remainingItems = filteredAppointments.length - selectedAppointments.length;
+                const newTotalPages = Math.ceil(remainingItems / itemsPerPage);
+                if (currentPage > newTotalPages && currentPage > 1) {
+                    setCurrentPage(currentPage - 1);
+                }
+            } else {
+                throw new Error(result.message || 'Failed to delete appointments');
+            }
+
+        } catch (error) {
+            console.error('Error during bulk delete:', error);
+            setError(error.message || 'Failed to delete selected appointments');
+        } finally {
+            setBulkDeleteLoading(false);
+        }
+    };
+
+    const handleBulkDeleteClick = () => {
+        if (selectedAppointments.length === 0) {
+            setError('Please select at least one appointment to delete');
+            setTimeout(() => setError(''), 3000);
+            return;
+        }
+        setShowBulkDeleteModal(true);
+    };
+
+    const handleExitSelectMode = () => {
+        setIsSelectMode(false);
+        setSelectedAppointments([]);
+    };
+
     // Update appointment status
-    const handleUpdateAppointment = async (appointmentId, status, notes) => {
+    const handleUpdateAppointment = async (appointmentId, status, notes, sendEmail = true, adminMessage = '') => {
         try {
             setUpdatingId(appointmentId);
             const token = localStorage.getItem('token');
@@ -125,7 +226,7 @@ function MAppointments() {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status, notes })
+                body: JSON.stringify({ status, notes, sendEmail, adminMessage })
             });
 
             const result = await response.json();
@@ -135,7 +236,11 @@ function MAppointments() {
                     app._id === appointmentId ? { ...app, status, notes } : app
                 ));
 
-                setSuccessMessage(`Appointment updated successfully to ${status}`);
+                if (sendEmail && status !== result.data?.status) {
+                    setSuccessMessage(`Appointment updated and email notification sent!`);
+                } else {
+                    setSuccessMessage(`Appointment updated successfully to ${status}`);
+                }
                 setTimeout(() => setSuccessMessage(''), 3000);
                 return result;
             } else {
@@ -158,8 +263,16 @@ function MAppointments() {
     };
 
     const handleSaveEdit = async (data) => {
-        await handleUpdateAppointment(selectedAppointment._id, data.status, data.notes);
-        setShowEditModal(false);
+        if (selectedAppointment && selectedAppointment._id) {
+            await handleUpdateAppointment(
+                selectedAppointment._id, 
+                data.status, 
+                data.notes,
+                data.sendEmail,
+                data.adminMessage
+            );
+            setShowEditModal(false);
+        }
     };
 
     const handleViewAppointment = async (appointment) => {
@@ -258,6 +371,7 @@ function MAppointments() {
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
 
         if (showNewAppointments) {
             setShowNewAppointments(false);
@@ -268,6 +382,8 @@ function MAppointments() {
     const handleStatusFilterChange = (e) => {
         setStatusFilter(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
+
         if (showNewAppointments) {
             setShowNewAppointments(false);
             setNewAppointments([]);
@@ -277,6 +393,8 @@ function MAppointments() {
     const handlePackageTypeFilterChange = (e) => {
         setPackageTypeFilter(e.target.value);
         setCurrentPage(1);
+        handleExitSelectMode();
+
         if (showNewAppointments) {
             setShowNewAppointments(false);
             setNewAppointments([]);
@@ -293,6 +411,7 @@ function MAppointments() {
         setPackageTypeFilter('all');
         setSearchTerm('');
         setCurrentPage(1);
+        handleExitSelectMode();
     };
 
     const clearFilters = () => {
@@ -302,6 +421,7 @@ function MAppointments() {
         setShowNewAppointments(false);
         setNewAppointments([]);
         setCurrentPage(1);
+        handleExitSelectMode();
     };
 
     // Sorting handlers
@@ -422,7 +542,7 @@ function MAppointments() {
     if (loading) return <LoadingSpinner message="Loading appointments..." />;
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">    
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">  
             {/* Success Message */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
@@ -440,9 +560,9 @@ function MAppointments() {
 
             {/* Header */}
             <header className="mb-8">
-                <p className="text-sm font-light text-gray-500 mb-2 tracking-wider">APPOINTMENTS</p>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                     <div>
+                        <p className="text-sm font-light text-gray-500 mb-2 tracking-wider">APPOINTMENTS</p>
                         <p className="text-gray-700 font-light">MANAGE YOUR PHOTOGRAPHY APPOINTMENTS</p>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-500">
@@ -451,6 +571,49 @@ function MAppointments() {
                     </div>
                 </div>
             </header>
+
+            {/* Bulk Actions Bar */}
+            <div className="mb-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    {!isSelectMode ? (
+                        <button
+                            onClick={() => setIsSelectMode(true)}
+                            className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-700 transition-colors flex items-center gap-2"
+                        >
+                            <FontAwesomeIcon icon={faCheckSquare} />
+                            Select Multiple
+                        </button>
+                    ) : (
+                        <>
+                            <button
+                                onClick={handleSelectAll}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 hover:text-gray-700 transition-colors flex items-center gap-2"
+                            >
+                                <FontAwesomeIcon icon={selectedAppointments.length === currentItems.length ? faCheckSquare : faSquare} />
+                                {selectedAppointments.length === currentItems.length ? 'Deselect All' : 'Select All'}
+                            </button>
+                            <button
+                                onClick={handleBulkDeleteClick}
+                                disabled={selectedAppointments.length === 0}
+                                className={`px-4 py-2 text-sm border rounded-lg transition-colors flex items-center gap-2 ${
+                                    selectedAppointments.length > 0
+                                        ? 'border-red-300 text-red-600 hover:bg-red-50 hover:border-red-500'
+                                        : 'border-gray-300 text-gray-400 cursor-not-allowed'
+                                }`}
+                            >
+                                <FontAwesomeIcon icon={faTrash} />
+                                Delete Selected ({selectedAppointments.length})
+                            </button>
+                            <button
+                                onClick={handleExitSelectMode}
+                                className="px-4 py-2 text-sm border border-gray-300 rounded-lg text-gray-600 hover:border-gray-500 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
 
             <FilterBar 
                 searchTerm={searchTerm}
@@ -491,6 +654,9 @@ function MAppointments() {
                 StatusBadge={StatusBadge}
                 currentPage={currentPage}
                 itemsPerPage={itemsPerPage}
+                isSelectMode={isSelectMode}
+                selectedAppointments={selectedAppointments}
+                onSelectAppointment={handleSelectAppointment}
             />
 
             {/* Pagination Controls */}
@@ -552,6 +718,7 @@ function MAppointments() {
                 </div>
             )}
 
+            {/* Modals */}
             <ViewModalApp 
                 isOpen={showViewModal}
                 onClose={() => {
@@ -582,6 +749,17 @@ function MAppointments() {
                 title="Delete Appointment"
                 subtitle="Are you sure you want to delete this appointment permanently"
                 loading={deleteLoading}
+            />
+
+            {/* Bulk Delete Confirmation Modal */}
+            <DeleteModal
+                isOpen={showBulkDeleteModal}
+                onClose={() => setShowBulkDeleteModal(false)}
+                onConfirm={handleBulkDelete}
+                item={null}
+                title="Bulk Delete Appointments"
+                subtitle={`Are you sure you want to delete ${selectedAppointments.length} appointment(s) permanently? This action cannot be undone.`}
+                loading={bulkDeleteLoading}
             />
         </div>
     );

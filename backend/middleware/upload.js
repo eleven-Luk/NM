@@ -14,7 +14,45 @@ if (!fs.existsSync(uploadDir)) {
     console.log('✅ Uploads directory created at:', uploadDir);
 }
 
-// Configure storage for resumes
+// Create samples subdirectory
+const uploadDirSample = path.join(__dirname, '../uploads/samples');
+if (!fs.existsSync(uploadDirSample)) {
+    fs.mkdirSync(uploadDirSample, { recursive: true });
+    console.log('✅ Samples uploads directory created at:', uploadDirSample);
+}
+
+// ==================== SAMPLE IMAGE UPLOAD ====================
+const storageSample = multer.diskStorage({
+    destination: function(req, file, cb) {
+        cb(null, uploadDirSample);
+    },
+    filename: function(req, file, cb) {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const filename = `sample-${uniqueSuffix}${ext}`;
+        cb(null, filename);
+    }
+});
+
+const fileFilterSample = (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+        cb(null, true);
+    } else {
+        cb(new Error('Only image files are allowed (JPEG, PNG, GIF, WEBP)!'));
+    }
+};
+
+const uploadSample = multer({
+    storage: storageSample,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+    fileFilter: fileFilterSample,
+});
+
+// ==================== RESUME UPLOAD ====================
 const storage = multer.diskStorage({
     destination: function(req, file, cb) {
         console.log('Saving file to:', uploadDir);
@@ -29,7 +67,6 @@ const storage = multer.diskStorage({
     }
 });
 
-// File Filter
 const fileFilter = (req, file, cb) => {
     console.log('Processing file:', file.originalname);
     console.log('MIME type:', file.mimetype);
@@ -90,7 +127,6 @@ export const uploadResume = (req, res, next) => {
         console.log('✅ File uploaded successfully');
         console.log('req.file:', req.file);
         
-        // If file was uploaded, add file path to req.body
         if (req.file) {
             req.body.resume = `/uploads/${req.file.filename}`;
             console.log('Resume path added to body:', req.body.resume);
@@ -102,4 +138,28 @@ export const uploadResume = (req, res, next) => {
     });
 };
 
-export { upload };
+// Middleware for sample image upload
+export const uploadSampleImage = (req, res, next) => {
+    console.log('📤 Sample upload middleware called');
+    
+    uploadSample.single('image')(req, res, (err) => {
+        if (err) {
+            console.log('❌ Sample upload error:', err);
+            return handleMulterError(err, req, res, next);
+        }
+        
+        console.log('✅ Sample image uploaded successfully');
+        console.log('req.file:', req.file);
+        
+        if (req.file) {
+            req.body.image = `/uploads/samples/${req.file.filename}`;
+            console.log('Image path added to body:', req.body.image);
+        } else {
+            console.log('⚠️ No image uploaded');
+        }
+        
+        next();
+    });
+};
+
+export { upload, uploadSample };

@@ -10,25 +10,32 @@ import {
     faBriefcase,
     faMapMarkerAlt,
     faClock,
-    faCalendarAlt
+    faCalendarAlt,
+    faCheckSquare,
+    faSquare
 } from '@fortawesome/free-solid-svg-icons';
 
 const AppointmentTable = ({ 
     appointments, 
     onSort, 
     sortConfig,
-    getSortIcon,  // ✅ Added missing prop
+    getSortIcon,
     onView, 
     onEdit, 
     onDelete,
     StatusBadge,
-    updatingId,   // ✅ Added missing prop
+    updatingId,
     currentPage = 1,
-    itemsPerPage = 10
+    itemsPerPage = 10,
+    // New props for bulk delete
+    isSelectMode = false,
+    selectedAppointments = [],
+    onSelectAppointment,
+    onSelectAll
 }) => {
     if (appointments.length === 0) {
         return (
-            <div className="bg-white border border-gray-200 p-16 text-center">
+            <div className="bg-white border border-gray-200 p-16 text-center rounded-lg">
                 <FontAwesomeIcon icon={faBriefcase} className="text-5xl text-gray-200 mb-4" />
                 <p className="text-gray-500 font-light mb-2">No appointments found</p>
                 <p className="text-sm text-gray-400 font-light">
@@ -65,11 +72,37 @@ const AppointmentTable = ({
         return (currentPage - 1) * itemsPerPage + index + 1;
     };
 
+    const isAllSelected = appointments.length > 0 && selectedAppointments.length === appointments.length;
+
+    const handleSelectAll = () => {
+        if (onSelectAll) {
+            onSelectAll();
+        } else if (onSelectAppointment) {
+            // Fallback: select/deselect all one by one
+            if (isAllSelected) {
+                appointments.forEach(app => onSelectAppointment(app._id));
+            } else {
+                appointments.forEach(app => onSelectAppointment(app._id));
+            }
+        }
+    };
+
     return (
         <div className='bg-white border border-gray-200 rounded-lg overflow-hidden overflow-x-auto'>
             <table className='min-w-full w-full divide-y divide-gray-200'>
                 <thead className='bg-gray-50'>
                     <tr>
+                        {/* Selection Checkbox Column */}
+                        {isSelectMode && (
+                            <th className='px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
+                                <input
+                                    type="checkbox"
+                                    checked={isAllSelected}
+                                    onChange={handleSelectAll}
+                                    className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                />
+                            </th>
+                        )}
                         <th className='px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'>
                             #
                         </th>
@@ -139,6 +172,18 @@ const AppointmentTable = ({
                 <tbody className='bg-white divide-y divide-gray-200'>
                     {appointments.map((appointment, index) => (
                         <tr key={appointment._id} className="hover:bg-gray-50 transition-colors">
+                            {/* Selection Checkbox */}
+                            {isSelectMode && (
+                                <td className="px-4 py-4">
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedAppointments.includes(appointment._id)}
+                                        onChange={() => onSelectAppointment && onSelectAppointment(appointment._id)}
+                                        className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                    />
+                                </td>
+                            )}
+                            
                             {/* Row Number */}
                             <td className="px-6 py-4 text-sm text-gray-500">
                                 {getRowNumber(index)}
@@ -205,7 +250,7 @@ const AppointmentTable = ({
                             <td className="px-6 py-4">
                                 <div className="flex items-center gap-1 text-sm text-gray-600">
                                     <FontAwesomeIcon icon={faMapMarkerAlt} className="text-gray-400 text-xs" />
-                                    <span>{appointment.location}</span>
+                                    <span className="truncate max-w-xs">{appointment.location}</span>
                                 </div>
                             </td>
 
@@ -244,6 +289,30 @@ const AppointmentTable = ({
                     ))}
                 </tbody>
             </table>
+            
+            {/* Selection Info Footer */}
+            {isSelectMode && selectedAppointments.length > 0 && (
+                <div className="px-6 py-3 bg-blue-50 border-t border-blue-200">
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm text-blue-700">
+                            <FontAwesomeIcon icon={faCheckSquare} className="mr-2" />
+                            {selectedAppointments.length} appointment(s) selected
+                        </div>
+                        <button
+                            onClick={() => {
+                                if (onSelectAll) {
+                                    onSelectAll();
+                                } else if (onSelectAppointment) {
+                                    appointments.forEach(app => onSelectAppointment(app._id));
+                                }
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                            {isAllSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

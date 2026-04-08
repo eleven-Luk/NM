@@ -1,4 +1,4 @@
-// components/modals/Maple/appointments/EditAppointmentModal.jsx
+// components/modals/Maple/appointments/EditModal.jsx
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
@@ -12,35 +12,46 @@ import {
     faClock,
     faMapMarkerAlt,
     faBox,
-    faCamera
+    faCamera,
+    faPaperPlane,
+    faEnvelope as faEnvelopeSolid,
+    faCheckCircle
 } from '@fortawesome/free-solid-svg-icons';
 import FormModal from '../../common/FormModal';
 
 function EditModal({ isOpen, onClose, onSave, appointment }) {
     const [formData, setFormData] = useState({
         status: 'pending',
-        notes: ''
+        notes: '',
+        sendEmail: true,
+        adminMessage: ''
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [showEmailPreview, setShowEmailPreview] = useState(false);
 
     const resetForm = () => {
         setFormData({
             status: 'pending',
-            notes: ''
+            notes: '',
+            sendEmail: true,
+            adminMessage: ''
         });
         setError('');
         setSuccess('');
         setLoading(false);
+        setShowEmailPreview(false);
     };
 
     useEffect(() => {
         if (appointment && isOpen) {
             setFormData({
                 status: appointment.status || 'pending',
-                notes: appointment.notes || ''
+                notes: appointment.notes || '',
+                sendEmail: true,
+                adminMessage: ''
             });
         } else if (!isOpen) {
             resetForm();
@@ -67,11 +78,18 @@ function EditModal({ isOpen, onClose, onSave, appointment }) {
         try {
             const appointmentData = { 
                 status: formData.status,
-                notes: formData.notes
+                notes: formData.notes,
+                sendEmail: formData.sendEmail,
+                adminMessage: formData.adminMessage
             }; 
 
             await onSave(appointmentData);
-            setSuccess('Appointment updated successfully');
+            
+            if (formData.sendEmail && formData.status !== appointment?.status) {
+                setSuccess('Appointment updated and email notification sent!');
+            } else {
+                setSuccess('Appointment updated successfully');
+            }
 
             setTimeout(() => {
                 setSuccess('');
@@ -85,10 +103,10 @@ function EditModal({ isOpen, onClose, onSave, appointment }) {
     };
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         }));
         if (error) {
             setError('');
@@ -137,8 +155,8 @@ function EditModal({ isOpen, onClose, onSave, appointment }) {
             loading={loading}
             error={error}
             success={success}
-            submitText="Update Status"
-            submitIcon={faSave}
+            submitText="Update & Send Notification"
+            submitIcon={faPaperPlane}
             maxWidth="max-w-lg"
             icon={faCamera}
             iconColor="text-gray-500"
@@ -203,7 +221,7 @@ function EditModal({ isOpen, onClose, onSave, appointment }) {
             <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                     <FontAwesomeIcon icon={faUserCheck} className='mr-2 text-gray-400' />
-                    Update Status
+                    Update Status *
                 </label>
                 <select 
                     name="status" 
@@ -219,38 +237,91 @@ function EditModal({ isOpen, onClose, onSave, appointment }) {
                     <option value="cancelled">❌ Cancelled</option>
                     <option value="rescheduled">🔄 Rescheduled</option>
                 </select>
-                <p className="text-xs text-gray-500 mt-2">
-                    Select the current status of this appointment
-                </p>
             </div>
 
-            {/* Notes */}
+            {/* Admin Notes (Internal) */}
             <div>
                 <label className='block text-sm font-medium text-gray-700 mb-2'>
                     <FontAwesomeIcon icon={faComment} className='mr-2 text-gray-400' />
-                    Admin Notes
+                    Internal Notes
                 </label>
                 <textarea
                     name="notes"
                     value={formData.notes}
                     onChange={handleChange}
-                    rows="4"
-                    placeholder="Add notes about this appointment (e.g., special instructions, client preferences, etc.)..."
+                    rows="3"
+                    placeholder="Add internal notes about this appointment (only visible to admins)..."
                     className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all bg-gray-50/50 resize-none"
                     disabled={loading}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                    Add any additional notes or comments about this appointment
+                    These notes are for internal use only
                 </p>
             </div>
 
-            {/* Status Change preview */}
-            {formData.status !== appointment?.status && appointment && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-xs text-blue-700">
-                        <FontAwesomeIcon icon={faSave} className="mr-1" />
-                        Status will change from <strong>{appointment?.status?.toUpperCase()}</strong> to <strong>{formData.status.toUpperCase()}</strong>
+            {/* Send Email Notification Toggle */}
+            {formData.status !== appointment?.status && (
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            name="sendEmail"
+                            checked={formData.sendEmail}
+                            onChange={handleChange}
+                            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <FontAwesomeIcon icon={faEnvelopeSolid} className="text-blue-600" />
+                                <span className="font-medium text-gray-900">Send email notification to client</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Notify {appointment?.name} about this status change
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            )}
+
+            {/* Admin Message for Email */}
+            {formData.sendEmail && formData.status !== appointment?.status && (
+                <div>
+                    <label className='block text-sm font-medium text-gray-700 mb-2'>
+                        <FontAwesomeIcon icon={faPaperPlane} className='mr-2 text-gray-400' />
+                        Personal Message to Client (Optional)
+                    </label>
+                    <textarea
+                        name="adminMessage"
+                        value={formData.adminMessage}
+                        onChange={handleChange}
+                        rows="3"
+                        placeholder="Add a personal message to include in the email notification..."
+                        className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-gray-400/20 focus:border-gray-400 transition-all bg-gray-50/50 resize-none"
+                        disabled={loading}
+                    />
+                    <p className="text-xs text-gray-500 mt-2">
+                        This message will be included in the email sent to the client
                     </p>
+                </div>
+            )}
+
+            {/* Status Change Preview */}
+            {formData.status !== appointment?.status && appointment && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <div className="flex items-start gap-2">
+                        <FontAwesomeIcon icon={faPaperPlane} className="text-blue-600 mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-blue-800 mb-1">Notification Preview</p>
+                            <p className="text-xs text-blue-700">
+                                Status will change from <strong>{appointment?.status?.toUpperCase()}</strong> to <strong>{formData.status.toUpperCase()}</strong>
+                                {formData.sendEmail && (
+                                    <span className="block mt-1">
+                                        📧 Email will be sent to: <strong>{appointment?.email}</strong>
+                                    </span>
+                                )}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             )}
         </FormModal>

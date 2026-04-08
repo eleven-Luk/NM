@@ -443,7 +443,7 @@ function NMJobs(){
 
     if (error) {
         return (
-            <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
                 <div className="bg-white border border-orange-200 p-8 text-center">
                     <p className="text-6xl text-orange-200 mb-4">—</p>
                     <p className="text-gray-500 font-light mb-4">Error: {error}</p>
@@ -459,7 +459,7 @@ function NMJobs(){
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">    
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">   
             {/* Success Message */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">

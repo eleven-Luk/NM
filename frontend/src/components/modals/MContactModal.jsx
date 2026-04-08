@@ -1,3 +1,4 @@
+// components/modals/Maple/MContactModal.jsx
 import React, { useState, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -10,9 +11,12 @@ import {
     faPhone,
     faClock,
     faMapMarkerAlt,
-    faBox
+    faBox,
+    faBan,
+    faSpinner
 } from '@fortawesome/free-solid-svg-icons';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import PublicCalendar from '../../components/calendar/PublicCalendar';
 
 function MContactModal({ isOpen, onClose, appointment }) {
     const [formData, setFormData] = useState({
@@ -23,7 +27,8 @@ function MContactModal({ isOpen, onClose, appointment }) {
         preferredDate: '',
         preferredTime: '',
         durationHours: '',
-        location: '',
+        locationType: 'studio',
+        locationOther: '',
         message: ''
     });
 
@@ -31,41 +36,83 @@ function MContactModal({ isOpen, onClose, appointment }) {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [validationErrors, setValidationErrors] = useState({});
+    
+    // Calendar states
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [availableTimeSlots, setAvailableTimeSlots] = useState({});
+    const [checkingAvailability, setCheckingAvailability] = useState(false);
+    const [selectedTimeRange, setSelectedTimeRange] = useState({ start: '', end: '' });
 
-    useEffect(() => {
-        if (!isOpen) {
-            setFormData({
-                name: '',
-                email: '',
-                phone: '',
-                packageType: 'newborn',
-                preferredDate: '',
-                preferredTime: '',
-                durationHours: '',
-                location: '',
-                message: ''
-            });
-            setError('');
-            setSuccess('');
-            setValidationErrors({});
-        }
-    }, [isOpen]);
+    // Location options
+    const locationOptions = [
+        { value: 'studio', label: ' In-Studio Session' },
+        { value: 'client-home', label: ' Client\'s Home' },
+        { value: 'outdoor', label: ' Outdoor Location' },
+        { value: 'other', label: ' Other Location' }
+    ];
 
+    // Fetch available time slots when date changes
     useEffect(() => {
-        if (isOpen && appointment) {
-            setFormData({
-                name: appointment.name || '',
-                email: appointment.email || '',
-                phone: appointment.phone || '',
-                packageType: appointment.packageType || 'newborn',
-                preferredDate: appointment.preferredDate ? new Date(appointment.preferredDate).toISOString().split('T')[0] : '',
-                preferredTime: appointment.preferredTime || '',
-                durationHours: appointment.durationHours || '',
-                location: appointment.location || '',
-                message: appointment.specialRequests || ''
-            });
+        if (formData.preferredDate) {
+            fetchAvailableTimeSlots(formData.preferredDate);
+        } else {
+            setAvailableTimeSlots({});
         }
-    }, [isOpen, appointment]);
+    }, [formData.preferredDate]);
+
+    const fetchAvailableTimeSlots = async (date) => {
+        setCheckingAvailability(true);
+        try {
+            const response = await fetch(`http://localhost:5000/api/appointments/available-time-slots?date=${date}`);
+
+            if (response.ok) {
+                const result = await response.json();
+                if (result.success) {
+                    setAvailableTimeSlots(result.data || {});
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching time slots:', error);
+        } finally {
+            setCheckingAvailability(false);
+        }
+    };
+
+    // Check time slot availability with duration
+    const checkTimeSlotAvailability = async (date, time, duration) => {
+        try {
+            const response = await fetch(`http://localhost:5000/api/appointments/check-time-slot?date=${date}&time=${time}&durationHours=${duration}`);
+            if (response.ok) {
+                const result = await response.json();
+                return result;
+            }
+            return { isAvailable: true };
+        } catch (error) {
+            console.error('Error checking time slot:', error);
+            return { isAvailable: true };
+        }
+    };
+
+    // Calculate end time based on start time and duration
+    const calculateEndTime = (startTime, durationHours) => {
+        if (!startTime || !durationHours) return '';
+        const [hours, minutes] = startTime.split(':');
+        const endHour = parseInt(hours) + parseInt(durationHours);
+        return `${endHour.toString().padStart(2, '0')}:${minutes}`;
+    };
+
+    // Update time range when time or duration changes
+    useEffect(() => {
+        if (formData.preferredTime && formData.durationHours) {
+            const endTime = calculateEndTime(formData.preferredTime, formData.durationHours);
+            setSelectedTimeRange({
+                start: formData.preferredTime,
+                end: endTime
+            });
+        } else {
+            setSelectedTimeRange({ start: '', end: '' });
+        }
+    }, [formData.preferredTime, formData.durationHours]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -73,6 +120,60 @@ function MContactModal({ isOpen, onClose, appointment }) {
         if (validationErrors[name]) {
             setValidationErrors(prev => ({ ...prev, [name]: '' }));
         }
+        
+        // Clear time selection when duration changes
+        if (name === 'durationHours') {
+            setFormData(prev => ({ ...prev, preferredTime: '' }));
+            setSelectedTimeRange({ start: '', end: '' });
+        }
+        
+        // Reset other location when location type changes from other
+        if (name === 'locationType' && value !== 'other') {
+            setFormData(prev => ({ ...prev, locationOther: '' }));
+        }
+    };
+
+    const handleDateSelect = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateString = `${year}-${month}-${day}`;
+        
+        setFormData(prev => ({ ...prev, preferredDate: dateString, preferredTime: '' }));
+        setShowCalendar(false);
+        setSelectedTimeRange({ start: '', end: '' });
+        if (validationErrors.preferredDate) {
+            setValidationErrors(prev => ({ ...prev, preferredDate: '' }));
+        }
+        setError('');
+    };
+
+    const handleTimeSelect = async (time) => {
+        if (!formData.durationHours) {
+            setError('Please select duration hours first');
+            return;
+        }
+        
+        const availability = await checkTimeSlotAvailability(formData.preferredDate, time, formData.durationHours);
+        
+        if (!availability.isAvailable) {
+            setError(`This time slot is not available. ${availability.conflictingTime ? `Conflicts with booking from ${availability.conflictingTime}` : ''}`);
+            setTimeout(() => setError(''), 3000);
+            return;
+        }
+        
+        setFormData(prev => ({ ...prev, preferredTime: time }));
+        if (validationErrors.preferredTime) {
+            setValidationErrors(prev => ({ ...prev, preferredTime: '' }));
+        }
+    };
+
+    const getFinalLocation = () => {
+        if (formData.locationType === 'other') {
+            return formData.locationOther.trim() || 'Other Location';
+        }
+        const location = locationOptions.find(opt => opt.value === formData.locationType);
+        return location ? location.label : 'Studio Session';
     };
 
     const validateForm = () => {
@@ -83,11 +184,28 @@ function MContactModal({ isOpen, onClose, appointment }) {
         else if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Please enter a valid email address';
         if (!formData.phone?.trim()) errors.phone = 'Please enter your phone number';
         if (!formData.packageType) errors.packageType = 'Please select a package type';
-        if (!formData.preferredDate) errors.preferredDate = 'Please select a preferred date';
-        if (!formData.preferredTime) errors.preferredTime = 'Please select a preferred time';
-        if (!formData.durationHours) errors.durationHours = 'Please enter duration hours';
-        else if (isNaN(formData.durationHours) || formData.durationHours <= 0) errors.durationHours = 'Duration must be a positive number';
-        if (!formData.location?.trim()) errors.location = 'Please enter a location';
+        
+        if (!formData.preferredDate) {
+            errors.preferredDate = 'Please select a preferred date';
+        }
+        
+        if (!formData.preferredTime) {
+            errors.preferredTime = 'Please select a preferred time';
+        }
+        
+        if (!formData.durationHours) {
+            errors.durationHours = 'Please enter duration hours';
+        } else if (isNaN(formData.durationHours) || formData.durationHours <= 0) {
+            errors.durationHours = 'Duration must be a positive number';
+        } else if (formData.durationHours > 8) {
+            errors.durationHours = 'Maximum duration is 8 hours';
+        }
+        
+        if (!formData.locationType) {
+            errors.location = 'Please select a location';
+        } else if (formData.locationType === 'other' && !formData.locationOther?.trim()) {
+            errors.location = 'Please enter the location';
+        }
 
         setValidationErrors(errors);
         return Object.keys(errors).length === 0;
@@ -97,10 +215,21 @@ function MContactModal({ isOpen, onClose, appointment }) {
         e.preventDefault();
         if (!validateForm()) return;
 
+        const availability = await checkTimeSlotAvailability(formData.preferredDate, formData.preferredTime, formData.durationHours);
+        
+        if (!availability.isAvailable) {
+            setError(`This time slot is no longer available. Please select another time.`);
+            setFormData(prev => ({ ...prev, preferredTime: '' }));
+            setSelectedTimeRange({ start: '', end: '' });
+            return;
+        }
+
         setLoading(true);
         setError('');
 
         try {
+            const finalLocation = getFinalLocation();
+            
             const response = await fetch(`http://localhost:5000/api/appointments/create`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -112,7 +241,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
                     preferredDate: formData.preferredDate,
                     preferredTime: formData.preferredTime,
                     durationHours: parseInt(formData.durationHours),
-                    location: formData.location.trim(),
+                    location: finalLocation,
                     specialRequests: formData.message.trim() || ''
                 }),
             });
@@ -148,7 +277,21 @@ function MContactModal({ isOpen, onClose, appointment }) {
         { value: 'custom', label: 'Custom Package' }
     ];
 
-    const timeSlots = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+    // Generate time slots in 30-minute intervals
+    const generateTimeSlots = () => {
+        const slots = [];
+        for (let hour = 9; hour <= 20; hour++) {
+            for (let minute = 0; minute < 60; minute += 30) {
+                const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                if (timeString >= '09:00' && timeString <= '20:00') {
+                    slots.push(timeString);
+                }
+            }
+        }
+        return slots;
+    };
+
+    const timeSlots = generateTimeSlots();
 
     const styles = {
         bg: 'bg-white',
@@ -169,7 +312,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
             
             <div className="flex min-h-full items-center justify-center p-4">
                 <div className={`relative w-full max-w-md ${styles.bg} rounded-xl shadow-2xl flex flex-col max-h-[90vh]`}>
-                    {/* Header - Fixed */}
+                    {/* Header */}
                     <div className={`flex items-center justify-between p-5 ${styles.headerBg} rounded-t-xl border-b ${styles.border} flex-shrink-0`}>
                         <div className='flex items-center gap-2'>
                             <FontAwesomeIcon icon={faCalendarCheck} className={styles.accent} />
@@ -234,13 +377,64 @@ function MContactModal({ isOpen, onClose, appointment }) {
                         {/* Preferred Date */}
                         <div>
                             <label className={`block text-xs ${styles.accent} mb-1 font-medium`}>Preferred Date *</label>
-                            <div className='relative'>
-                                <FontAwesomeIcon icon={faCalendarCheck} className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.accent} text-sm`} />
-                                <input type='date' name='preferredDate' value={formData.preferredDate} onChange={handleChange}
-                                    className={`w-full pl-10 p-2.5 border ${validationErrors.preferredDate ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
-                                    min={new Date().toISOString().split('T')[0]} />
+                            <button
+                                type="button"
+                                onClick={() => setShowCalendar(!showCalendar)}
+                                className="w-full p-2.5 border border-gray-300 rounded-lg text-left text-sm focus:outline-none focus:ring-1 focus:ring-gray-400 bg-white flex items-center justify-between"
+                            >
+                                <span className={formData.preferredDate ? 'text-gray-800' : 'text-gray-400'}>
+                                    {formData.preferredDate ? new Date(formData.preferredDate).toLocaleDateString() : 'Select a date'}
+                                </span>
+                                <FontAwesomeIcon icon={faCalendarCheck} className="text-gray-400" />
+                            </button>
+                            {validationErrors.preferredDate && (
+                                <div className="flex items-center gap-1 mt-1">
+                                    <FontAwesomeIcon icon={faBan} className="text-red-500 text-xs" />
+                                    <p className={`text-xs ${styles.error}`}>{validationErrors.preferredDate}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Calendar Popup */}
+                        {showCalendar && (
+                            <div className="bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+                                <PublicCalendar 
+                                    onDateSelect={handleDateSelect}
+                                    selectedDate={formData.preferredDate}
+                                />
+                                <div className="p-3 border-t border-gray-200 bg-gray-50">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowCalendar(false)}
+                                        className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                                    >
+                                        Close Calendar
+                                    </button>
+                                </div>
                             </div>
-                            {validationErrors.preferredDate && <p className={`text-xs ${styles.error} mt-1`}>{validationErrors.preferredDate}</p>}
+                        )}
+
+                        {/* Duration Hours */}
+                        <div>
+                            <label className={`block text-xs ${styles.accent} mb-1 font-medium`}>Duration (Hours) *</label>
+                            <select 
+                                name='durationHours' 
+                                value={formData.durationHours} 
+                                onChange={handleChange}
+                                className={`w-full p-2.5 border ${validationErrors.durationHours ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
+                            >
+                                <option value=''>Select duration</option>
+                                <option value='1'>1 hour</option>
+                                <option value='2'>2 hours</option>
+                                <option value='3'>3 hours</option>
+                                <option value='4'>4 hours</option>
+                                <option value='5'>5 hours</option>
+                                <option value='6'>6 hours</option>
+                                <option value='7'>7 hours</option>
+                                <option value='8'>8 hours</option>
+                            </select>
+                            {validationErrors.durationHours && <p className={`text-xs ${styles.error} mt-1`}>{validationErrors.durationHours}</p>}
+                            <p className="text-xs text-gray-400 mt-1">Select how many hours you need for the session</p>
                         </div>
 
                         {/* Preferred Time */}
@@ -248,33 +442,108 @@ function MContactModal({ isOpen, onClose, appointment }) {
                             <label className={`block text-xs ${styles.accent} mb-1 font-medium`}>Preferred Time *</label>
                             <div className='relative'>
                                 <FontAwesomeIcon icon={faClock} className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.accent} text-sm`} />
-                                <select name='preferredTime' value={formData.preferredTime} onChange={handleChange}
-                                    className={`w-full pl-10 p-2.5 border ${validationErrors.preferredTime ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}>
+                                <select 
+                                    name='preferredTime' 
+                                    value={formData.preferredTime} 
+                                    onChange={(e) => handleTimeSelect(e.target.value)}
+                                    disabled={!formData.preferredDate || !formData.durationHours || checkingAvailability}
+                                    className={`w-full pl-10 p-2.5 border ${validationErrors.preferredTime ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing} ${(!formData.preferredDate || !formData.durationHours) ? 'bg-gray-100 cursor-not-allowed' : ''}`}>
                                     <option value=''>Select a time</option>
-                                    {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
+                                    {timeSlots.map(time => {
+                                        const isAvailable = availableTimeSlots[time] !== false;
+                                        return (
+                                            <option 
+                                                key={time} 
+                                                value={time}
+                                                disabled={!isAvailable}
+                                            >
+                                                {time} {!isAvailable && '(Booked)'}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
+                                {checkingAvailability && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <FontAwesomeIcon icon={faSpinner} className="animate-spin text-gray-400" />
+                                    </div>
+                                )}
                             </div>
                             {validationErrors.preferredTime && <p className={`text-xs ${styles.error} mt-1`}>{validationErrors.preferredTime}</p>}
+                            {(!formData.preferredDate || !formData.durationHours) && (
+                                <p className="text-xs text-gray-400 mt-1">Please select a date and duration first</p>
+                            )}
+                            
+                            {/* Time Range Display */}
+                            {selectedTimeRange.start && selectedTimeRange.end && (
+                                <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p className="text-xs text-blue-700 flex items-center gap-1">
+                                        <FontAwesomeIcon icon={faClock} className="text-xs" />
+                                        Your session will be from <strong>{selectedTimeRange.start}</strong> to <strong>{selectedTimeRange.end}</strong>
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
-                        {/* Duration Hours */}
-                        <div>
-                            <label className={`block text-xs ${styles.accent} mb-1 font-medium`}>Duration (Hours) *</label>
-                            <input type='number' name='durationHours' value={formData.durationHours} onChange={handleChange}
-                                className={`w-full p-2.5 border ${validationErrors.durationHours ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
-                                placeholder='2' min='1' max='8' />
-                            {validationErrors.durationHours && <p className={`text-xs ${styles.error} mt-1`}>{validationErrors.durationHours}</p>}
-                        </div>
-
-                        {/* Location */}
+                        {/* Location Selection - Dropdown with conditional input */}
                         <div>
                             <label className={`block text-xs ${styles.accent} mb-1 font-medium`}>Location *</label>
                             <div className='relative'>
                                 <FontAwesomeIcon icon={faMapMarkerAlt} className={`absolute left-3 top-1/2 -translate-y-1/2 ${styles.accent} text-sm`} />
-                                <input type='text' name='location' value={formData.location} onChange={handleChange}
+                                <select 
+                                    name='locationType' 
+                                    value={formData.locationType} 
+                                    onChange={handleChange}
                                     className={`w-full pl-10 p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
-                                    placeholder='Studio or address' />
+                                >
+                                    {locationOptions.map(opt => (
+                                        <option key={opt.value} value={opt.value}>
+                                            {opt.label}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
+                            
+                            {formData.locationType === 'outdoor' && (
+                                <div className="mt-2">
+                                    <input
+                                        type='text'
+                                        name='locationOutdoor'
+                                        value={formData.locationType} 
+                                        onChange={handleChange}
+                                        placeholder="Enter your location (address, landmark, etc.)"
+                                        className={`w-full p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
+                                    />
+                                </div>
+                            )}
+                            
+
+                            {formData.locationType === 'client-home' && (
+                                <div className="mt-2">
+                                    <input
+                                        type='text'
+                                        name='locationClientHome'
+                                        value={formData.locationType}
+                                        onChange={handleChange}
+                                        placeholder="Enter your location (address, landmark, etc.)"
+                                        className={`w-full p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
+                                    />
+                                </div>
+                            )}
+                            
+                            {/* Conditional input for "Other" location */}
+                            {formData.locationType === 'other' && (
+                                <div className="mt-2">
+                                    <input
+                                        type='text'
+                                        name='locationOther'
+                                        value={formData.locationOther}
+                                        onChange={handleChange}
+                                        placeholder="Enter your location (address, landmark, etc.)"
+                                        className={`w-full p-2.5 border ${validationErrors.location ? 'border-red-400' : styles.border} rounded-lg text-sm focus:outline-none focus:ring-1 ${styles.focusRing}`}
+                                    />
+                                </div>
+                            )}
+                            
                             {validationErrors.location && <p className={`text-xs ${styles.error} mt-1`}>{validationErrors.location}</p>}
                         </div>
 
@@ -293,7 +562,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
                         {error && <div className="p-3 bg-red-50 border border-red-200 rounded-lg"><p className="text-red-600 text-sm">{error}</p></div>}
                         {success && <div className="p-3 bg-green-50 border border-green-200 rounded-lg"><p className="text-green-600 text-sm">{success}</p></div>}
 
-                        {/* Submit Button - INSIDE the form */}
+                        {/* Submit Button */}
                         <div className="pt-2">
                             <button type='submit' disabled={loading}
                                 className={`w-full ${styles.buttonBg} text-white py-3 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}>

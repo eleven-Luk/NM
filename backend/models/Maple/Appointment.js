@@ -67,6 +67,25 @@ const appointmentSchema = new mongoose.Schema({
         type: Date,
         default: null,
     },
+
+
+    // For calendar
+    appointmentReference: {
+    type: String,
+    unique: true,
+    default: function() {
+        return 'APT-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6).toUpperCase();
+    }
+    },
+    confirmedDate: {
+        type: Date,
+        default: null
+    },
+    calendarEventId: {
+        type: String, // For future Google Calendar integration
+        default: null
+    },
+
     
     deletedAt: {
         type: Date,

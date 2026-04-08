@@ -14,6 +14,7 @@ import concernRoutes from '../backend/routes/NM/concernRoutes.js'
 
 // Maple Routes import
 import appoRoutes from '../backend/routes/Maple/AppoRoutes.js'
+import sampleRoutes from '../backend/routes/Maple/sampleRoutes.js'
 
 
 // Load environment variables
@@ -44,6 +45,7 @@ app.use('/api/concerns', concernRoutes);
 
 // Protected Routes Maple
 app.use('/api/appointments', appoRoutes);
+app.use('/api/samples', sampleRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

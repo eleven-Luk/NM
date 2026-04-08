@@ -98,8 +98,9 @@ function NMApplicants() {
         fetchApplications();
     }, [fetchApplications]);
 
-    // Update application status
-    const handleUpdateApplication = async (applicationId, status, notes) => {
+ 
+    // Update application status with email
+    const handleUpdateApplication = async (applicationId, status, notes, sendEmail = true, adminMessage = '') => {
         try {
             setUpdatingId(applicationId);
             const token = localStorage.getItem('token');
@@ -109,13 +110,21 @@ function NMApplicants() {
                 return;
             }
 
+            // Log what we're sending
+            console.log('Sending to backend:', { status, notes, sendEmail, adminMessage });
+
             const response = await fetch(`http://localhost:5000/api/applications/updateStatus/${applicationId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ status, notes })
+                body: JSON.stringify({ 
+                    status, 
+                    notes, 
+                    sendEmail: sendEmail === true, // Force boolean
+                    adminMessage: adminMessage || '' 
+                })
             });
 
             const result = await response.json();
@@ -125,7 +134,11 @@ function NMApplicants() {
                     app._id === applicationId ? { ...app, status, notes } : app
                 ));
 
-                setSuccessMessage(`Application updated successfully to ${status}`);
+                if (sendEmail === true && status !== originalStatus) {
+                    setSuccessMessage(`Application updated and email notification sent!`);
+                } else {
+                    setSuccessMessage(`Application updated successfully to ${status}`);
+                }
                 setTimeout(() => setSuccessMessage(''), 3000);
                 return result;
             } else {
@@ -140,15 +153,29 @@ function NMApplicants() {
         }
     };
 
-     // Modal handlers
+    // Store original status for comparison
+    const [originalStatus, setOriginalStatus] = useState('');
+
     const handleEditClick = (application) => {
         setSelectedApplication(application);
+        setOriginalStatus(application.status); // Store original status
         setShowEditModal(true);
     };
 
     const handleSaveEdit = async (data) => {
-        await handleUpdateApplication(selectedApplication._id, data.status, data.notes);
-        setShowEditModal(false);
+        if (selectedApplication && selectedApplication._id) {
+            // Compare if status actually changed
+            const statusChanged = data.status !== originalStatus;
+            
+            await handleUpdateApplication(
+                selectedApplication._id, 
+                data.status, 
+                data.notes,
+                data.sendEmail && statusChanged, // Only send email if checkbox checked AND status changed
+                data.adminMessage
+            );
+            setShowEditModal(false);
+        }
     };
 
     // Archive handlers
@@ -328,7 +355,7 @@ function NMApplicants() {
     if (loading) return <LoadingSpinner message="Loading applicants..." />;
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
             {/* Success Message */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">

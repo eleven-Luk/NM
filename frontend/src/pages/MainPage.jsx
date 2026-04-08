@@ -1,28 +1,37 @@
 // MainPage.jsx
-import React, { useRef } from 'react';
-import { Outlet } from 'react-router-dom'; // Make sure to import Outlet
+import React, { useRef, useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Header from '../layout/Header.jsx';
 import Body from '../layout/Body.jsx';
 import Contact from '../layout/Contact.jsx';
 import Footer from '../layout/Footer.jsx';
 
 function MainPage() {
-     const homeRef = useRef(null);
+    const homeRef = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
 
-     const scrollToSection = (ref) => {
-            if (ref.current) {
-                const headerOffset = 100;
-                const elementPosition = ref.current.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
+    const scrollToSection = (ref) => {
+        if (ref.current) {
+            const headerOffset = isMobile ? 80 : 100;
+            const elementPosition = ref.current.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
     
-                 window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
         }
+    }
     
-        
     return (
         <>
             <Header 
@@ -34,7 +43,6 @@ function MainPage() {
             
             <Contact />
             
-            {/* Optional separator when policy content is shown */}
             <div className="policy-content">
                 <Outlet />
             </div>
@@ -43,6 +51,5 @@ function MainPage() {
         </>
     )
 }
-
 
 export default MainPage;

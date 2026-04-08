@@ -439,7 +439,7 @@ function NMApplicantsArchive() {
     if (loading) return <LoadingSpinner message="Loading archived applicants..." />;
 
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
             {/* Back Button */}
             <button
                 onClick={() => navigate('/nm/applicants')} 

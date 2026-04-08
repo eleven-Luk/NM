@@ -1,6 +1,6 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { registerUser, loginUser } from '../controllers/authController.js';
+import { registerUser, loginUser, resendOTP } from '../controllers/authController.js';
 import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -20,8 +20,13 @@ const loginValidation = [
   body('password').notEmpty().withMessage('Password is required')
 ];
 
-router.post('/register', registerValidation, registerUser);
+const resendOTPValidation = [
+  body('email').isEmail().withMessage('Please provide a valid email')
+    .normalizeEmail()
+];
 
+router.post('/register', registerValidation, registerUser);
 router.post('/login', loginValidation, loginUser);
+router.post('/resend-otp', resendOTPValidation, resendOTP);
 
 export default router;

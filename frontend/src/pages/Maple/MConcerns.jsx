@@ -108,7 +108,7 @@ function MapleConcerns() {
         fetchConcerns();
     }, [fetchConcerns]);
 
-    const handleUpdateConcern = async (concernId, status, notes, priority) => {
+    const handleUpdateConcern = async (concernId, status, notes, priority, sendEmail = true, adminMessage = '') => {
         try {
             setUpdatingId(concernId);
             const token = localStorage.getItem('token');
@@ -128,7 +128,9 @@ function MapleConcerns() {
                 body: JSON.stringify({
                     status,
                     notes,
-                    priority
+                    priority,
+                    sendEmail,
+                    adminMessage
                 })
             });
 
@@ -139,7 +141,11 @@ function MapleConcerns() {
                     concern => concern._id === concernId ? { ...concern, status, notes, priority } : concern
                 ));
 
-                setSuccessMessage('Concern updated successfully');
+                if (sendEmail && status !== result.data?.status) {
+                    setSuccessMessage('Concern updated and email notification sent!');
+                } else {
+                    setSuccessMessage('Concern updated successfully');
+                }
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
                 throw new Error(result.message || 'Failed to update concern');
@@ -324,8 +330,17 @@ function MapleConcerns() {
     };
 
     const handleSaveEdit = async (data) => {
-        await handleUpdateConcern(selectedConcern._id, data.status, data.notes, data.priority);
-        setShowEditModalOpen(false);
+        if (selectedConcern && selectedConcern._id) {
+            await handleUpdateConcern(
+                selectedConcern._id, 
+                data.status, 
+                data.notes, 
+                data.priority,
+                data.sendEmail,
+                data.adminMessage
+            );
+            setShowEditModalOpen(false);
+        }
     };
 
     const handleView = (concern) => {
@@ -532,7 +547,7 @@ function MapleConcerns() {
     if (loading) return <LoadingSpinner message="Loading Maple concerns..." />;
     
     return (
-        <div className="max-w-7xl mx-auto px-4 py-8">    
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8"> 
             {/* Success Message */}
             {successMessage && (
                 <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 animate-fadeIn">

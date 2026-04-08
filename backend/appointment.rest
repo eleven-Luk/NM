@@ -39,3 +39,18 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjY
 DELETE http://localhost:5000/api/appointments/delete/69cb664a8a8d306b8c9d3b8f
 Content-Type: application/json
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NDkzNzU3OSwiZXhwIjoxNzc1MDIzOTc5fQ.x4UUjOyVvHsi9X6OVNJCeyqkPDlL7b3Nf1P6yUx0Rms
+
+
+### Login
+POST http://localhost:5000/api/auth/login
+Content-Type: application/json
+
+{
+    "email": "admin@gmail.com",
+    "password": "123456"
+}
+
+### Confirm Appointment
+GET http://localhost:5000/api/appointments/confirmed
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5YWNlZDBjYTcyOWY1MTIzODVhMDEwMCIsImlhdCI6MTc3NTE5MzMxOSwiZXhwIjoxNzc1Mjc5NzE5fQ.goesU4Dv2FOlPRLL8mWkrZWpkdBpMdv0SBI-x2-z_Bw

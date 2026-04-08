@@ -18,9 +18,10 @@ import AboutMaple from './pages/Maple/AboutMaple.jsx';
 import MDashboard from './pages/Maple/MDashboard.jsx';
 import MSamples from './pages/Maple/MSamples.jsx';
 import MAppointments from './pages/Maple/MAppointments.jsx';
-import MSchedules from './pages/Maple/MSchedules.jsx';
+
 import MConcerns from './pages/Maple/MConcerns.jsx';
 import Samples from './pages/Maple/Samples.jsx'
+import MCalendar from './pages/Maple/MCalendar.jsx';
 
 
 
@@ -96,8 +97,11 @@ const router = createBrowserRouter([
     path: '/about-nm',
     element: <AboutNM />,
   },{
-    path: '/choose',
-    element: <ChoosePage />,
+    path: '/admin/choose',
+    element: 
+      <ProtectedRoute>
+        <ChoosePage />
+      </ProtectedRoute>,
   },
   {
     path:'/nm-admin',
@@ -153,8 +157,8 @@ const router = createBrowserRouter([
         element: <MAppointments />
       },
       {
-        path: 'schedules',
-        element: <MSchedules />
+        path: 'appointments/calendar',
+        element: <MCalendar />
       },
       {
         path: 'concerns',

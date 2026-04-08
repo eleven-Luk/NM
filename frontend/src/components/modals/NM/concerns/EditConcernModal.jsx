@@ -16,7 +16,9 @@ import {
     faTimesCircle,
     faEye,
     faEdit,
-    faArrowRight
+    faArrowRight,
+    faPaperPlane,
+    faEnvelope as faEnvelopeSolid
 } from '@fortawesome/free-solid-svg-icons';
 import FormModal from '../../common/FormModal';
 
@@ -25,40 +27,42 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
         status: 'pending',
         notes: '',
         priority: 'medium',
-        assignedTo: ''
+        sendEmail: true,
+        adminMessage: ''
     });
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [charCount, setCharCount] = useState(0);
+    const [messageCharCount, setMessageCharCount] = useState(0);
 
-    // Reset form function
     const resetForm = () => {
         setFormData({
             status: 'pending',
             notes: '',
             priority: 'medium',
-            assignedTo: ''
+            sendEmail: true,
+            adminMessage: ''
         });
         setCharCount(0);
+        setMessageCharCount(0);
         setError('');
         setSuccess('');
         setLoading(false);
     };
 
-    // Load concern data when modal opens
     useEffect(() => {
         if (concern && isOpen) {
             setFormData({
                 status: concern.status || 'pending',
                 notes: concern.notes || '',
                 priority: concern.priority || 'medium',
-                assignedTo: concern.assignedTo || ''
+                sendEmail: true,
+                adminMessage: ''
             });
             setCharCount(concern.notes?.length || 0);
         } else if (!isOpen) {
-            // Reset form when modal closes
             resetForm();
         }
     }, [concern, isOpen]);
@@ -70,6 +74,10 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
         }
         if (formData.notes && formData.notes.length > 500) {
             setError('Notes cannot exceed 500 characters');
+            return false;
+        }
+        if (formData.adminMessage && formData.adminMessage.length > 300) {
+            setError('Admin message cannot exceed 300 characters');
             return false;
         }
         return true;
@@ -89,19 +97,22 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                 status: formData.status,
                 notes: formData.notes,
                 priority: formData.priority,
-                assignedTo: formData.assignedTo,
+                sendEmail: formData.sendEmail,
+                adminMessage: formData.adminMessage,
                 updatedAt: new Date().toISOString()
             };
 
             await onSave(concernData);
-            setSuccess('Concern updated successfully');
             
-            // Reset form after successful update
+            if (formData.sendEmail && formData.status !== concern?.status) {
+                setSuccess('Concern updated and email notification sent!');
+            } else {
+                setSuccess('Concern updated successfully');
+            }
+            
             setTimeout(() => {
                 setSuccess('');
                 onClose();
-                // Reset form after modal closes
-                resetForm();
             }, 2000);
 
         } catch (error) {
@@ -111,14 +122,17 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
     }; 
 
     const handleChange = (e) => {
-        const { name, value } = e.target;
+        const { name, value, type, checked } = e.target;
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: type === 'checkbox' ? checked : value
         }));
         
         if (name === 'notes') {
             setCharCount(value.length);
+        }
+        if (name === 'adminMessage') {
+            setMessageCharCount(value.length);
         }
         
         if (error) {
@@ -191,26 +205,23 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
         { value: 'low', label: 'Low Priority', icon: faTag, color: 'text-emerald-600' }
     ];
 
-    const statusConfig = getStatusConfig(formData.status);
-    const priorityConfig = getPriorityConfig(formData.priority);
-
     return (
         <FormModal 
             isOpen={isOpen}
             onClose={handleClose}
             onSubmit={handleSubmit}
             title="Update Concern"
-            subtitle={`Reference: ${concern?.reference || concern?.id?.slice(-6) || 'N/A'}`}
+            subtitle={`Reference: ${concern?._id?.slice(-6) || concern?.reference || 'N/A'}`}
             loading={loading}
             error={error}
             success={success}
-            submitText="Update Concern"
-            submitIcon={faSave}
+            submitText="Update & Send Notification"
+            submitIcon={faPaperPlane}
             maxWidth='max-w-2xl'
             icon={faEdit}
             iconColor="text-orange-600"
         >
-            {/* Concern Details Card - Redesigned */}
+            {/* Concern Details Card */}
             {concern && (
                 <div className="mb-6 bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl border border-orange-200 overflow-hidden">
                     <div className="p-5">
@@ -224,7 +235,7 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                                 </h3>
                                 <div className="flex items-center gap-2 mb-3">
                                     <span className="px-2 py-1 bg-orange-200/50 rounded-lg text-xs font-medium text-orange-800">
-                                        {concern.type || 'General Concern'}
+                                        {concern.inquiryType || 'General Concern'}
                                     </span>
                                     <span className="text-xs text-gray-500">
                                         Submitted: {new Date(concern.createdAt).toLocaleDateString()}
@@ -247,7 +258,7 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                 </div>
             )}
 
-            {/* Current Status Banner - Enhanced */}
+            {/* Current Status Banner */}
             {concern && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
                     <div className="flex items-center justify-between flex-wrap gap-3">
@@ -295,7 +306,7 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                 </div>
             )}
 
-            {/* Form Fields - Enhanced Layout */}
+            {/* Form Fields */}
             <div className="space-y-5">
                 {/* Status Selection */}
                 <div>
@@ -322,7 +333,7 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                     </div>
                 </div>
 
-                {/* Priority Selection - New Feature */}
+                {/* Priority Selection */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                         <FontAwesomeIcon icon={faFlag} className="mr-2 text-orange-500" />
@@ -347,20 +358,20 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                     </div>
                 </div>
 
-                {/* Admin Notes - Enhanced */}
+                {/* Admin Notes (Internal) */}
                 <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                         <FontAwesomeIcon icon={faComment} className="mr-2 text-orange-500" />
-                        Admin Notes
+                        Internal Notes
                     </label>
                     <div className="relative">
                         <textarea
                             name="notes"
                             value={formData.notes}
                             onChange={handleChange}
-                            rows="4"
+                            rows="3"
                             maxLength="500"
-                            placeholder="Add detailed notes about this concern (e.g., resolution steps, follow-up actions, etc.)..."
+                            placeholder="Add internal notes about this concern (only visible to admins)..."
                             className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 transition-all bg-white resize-none"
                             disabled={loading}
                         />
@@ -370,25 +381,91 @@ function EditConcernModal({ isOpen, onClose, onSave, concern }) {
                             </span>
                         </div>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                        <FontAwesomeIcon icon={faComment} className="text-gray-400" />
-                        Add any additional notes, comments, or resolution details
+                    <p className="text-xs text-gray-500 mt-2">
+                        These notes are for internal use only
                     </p>
                 </div>
+
+
+                {formData.status !== concern?.status && (
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            name="sendEmail"
+                            checked={formData.sendEmail}
+                            onChange={(e) => {
+                                const newValue = e.target.checked;
+                                console.log('Checkbox changed to:', newValue); // Debug log
+                                setFormData(prev => ({
+                                    ...prev,
+                                    sendEmail: newValue
+                                }));
+                            }}
+                            className="w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                            disabled={loading}
+                        />
+                        <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                                <FontAwesomeIcon icon={faEnvelopeSolid} className="text-blue-600" />
+                                <span className="font-medium text-gray-900">Send email notification to client</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mt-1">
+                                Notify {concern?.name} about this status change
+                            </p>
+                        </div>
+                    </label>
+                </div>
+            )}
+
+                {/* Admin Message for Email */}
+                {formData.sendEmail && formData.status !== concern?.status && (
+                    <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            <FontAwesomeIcon icon={faPaperPlane} className="mr-2 text-orange-500" />
+                            Personal Message to Client (Optional)
+                        </label>
+                        <div className="relative">
+                            <textarea
+                                name="adminMessage"
+                                value={formData.adminMessage}
+                                onChange={handleChange}
+                                rows="3"
+                                maxLength="300"
+                                placeholder="Add a personal message to include in the email notification..."
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400/20 focus:border-orange-400 transition-all bg-white resize-none"
+                                disabled={loading}
+                            />
+                            <div className="absolute bottom-3 right-3">
+                                <span className={`text-xs ${messageCharCount > 270 ? 'text-orange-500' : 'text-gray-400'}`}>
+                                    {messageCharCount}/300
+                                </span>
+                            </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2">
+                            This message will be included in the email sent to the client
+                        </p>
+                    </div>
+                )}
             </div>
 
-            {/* Status Change Preview - Enhanced */}
+            {/* Status Change Preview */}
             {formData.status !== concern?.status && concern && (
                 <div className="mt-5 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
                     <div className="flex items-start gap-2">
                         <FontAwesomeIcon icon={faArrowRight} className="text-blue-500 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-blue-900">Status Change Preview</p>
+                            <p className="text-sm font-medium text-blue-900">Notification Preview</p>
                             <p className="text-xs text-blue-700 mt-1">
                                 Status will change from{' '}
                                 <span className="font-semibold">{getStatusConfig(concern.status).label}</span>
                                 {' '}→{' '}
                                 <span className="font-semibold">{getStatusConfig(formData.status).label}</span>
+                                {formData.sendEmail && (
+                                    <span className="block mt-1">
+                                        📧 Email will be sent to: <strong>{concern.email}</strong>
+                                    </span>
+                                )}
                             </p>
                         </div>
                     </div>
