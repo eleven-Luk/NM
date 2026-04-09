@@ -2,8 +2,8 @@ import express from 'express';
 import { body } from 'express-validator';
 import { createJob, getAllJobs, getViewJob, updateJob
     , moveToArchive, getArchivedJobs, restoreJob, deleteArchivedJob, viewArchivedJob
- } from '../../controllers/NM/JobController.js';
- import { protect } from '../../middleware/auth.js';
+ } from '../controllers/NM/JobController.js';
+ import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 

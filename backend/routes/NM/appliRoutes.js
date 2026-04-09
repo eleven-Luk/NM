@@ -1,7 +1,7 @@
 import express from 'express';
-import { uploadResume } from '../../middleware/upload.js';
-import { createApplication, getApplications, updateApplicationStatus, moveToArchive, getArchivedApplications, getViewApplication, restoreApplication, deleteApplication } from '../../controllers/NM/ApplicationController.js';
-import { protect } from '../../middleware/auth.js';
+import { uploadResume } from '../middleware/upload.js';
+import { createApplication, getApplications, updateApplicationStatus, moveToArchive, getArchivedApplications, getViewApplication, restoreApplication, deleteApplication } from '../controllers/NM/ApplicationController.js';
+import { protect } from '../middleware/auth.js';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
 import express from 'express';
-import { protect } from '../../middleware/auth.js';
+import { protect } from '../middleware/auth.js';
 import { 
     createAppointment, 
     getAppointments, 
@@ -12,7 +12,7 @@ import {
     getAppointmentStats,
     updateAppointment,
     bulkDeleteAppointments
-} from '../../controllers/Maple/AppointmentController.js';
+} from '../controllers/Maple/AppointmentController.js';
 
 import {
     checkTimeSlotAvailability,
@@ -23,7 +23,7 @@ import {
     getUnavailableDates,
     setUnavailableDate,
     deleteUnavailableDate
-} from '../../controllers/Maple/ScheduleController.js';
+} from '../controllers/Maple/ScheduleController.js';
 
 const router = express.Router();
 

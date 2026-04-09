@@ -1,7 +1,7 @@
 // routes/Maple/sampleRoutes.js
 import express from 'express';
-import { protect } from '../../middleware/auth.js';
-import { uploadSampleImage } from '../../middleware/upload.js'; // Changed from uploadSample to uploadSampleImage
+import { protect } from '../middleware/auth.js';
+import { uploadSampleImage } from '../middleware/upload.js'; // Changed from uploadSample to uploadSampleImage
 import { 
     createSample, 
     getAllSamples, 
@@ -9,7 +9,7 @@ import {
     updateSample, 
     deleteSample,
     getSamplesByCategory
-} from '../../controllers/Maple/SampleController.js';
+} from '../controllers/Maple/SampleController.js';
 
 const router = express.Router();
 
