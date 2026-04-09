@@ -11,25 +11,54 @@ const otpStore = new Map();
 // Store trusted devices (user email + device fingerprint)
 const trustedDevices = new Map();
 
-// Email transporter configuration
+// Email transporter configuration - UPDATED for Render
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+    port: parseInt(process.env.EMAIL_PORT) || 587,
+    secure: false, // false for port 587
+    requireTLS: true,
     auth: {
         user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
+        pass: process.env.EMAIL_PASS  // Your 16-character App Password
+    },
+    tls: {
+        rejectUnauthorized: false
+    },
+    connectionTimeout: 10000,
+    socketTimeout: 10000
+});
+
+// Verify transporter on startup (doesn't crash if fails)
+transporter.verify((error, success) => {
+    if (error) {
+        console.error('❌ Email transporter error:', error.message);
+        console.log('📧 OTP emails will not work until email is configured');
+    } else {
+        console.log('✅ Email server is ready for OTP');
     }
 });
+
+// Safe email sending function
+const safeSendEmail = async (mailOptions) => {
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ OTP email sent: ${info.messageId}`);
+        return { success: true, messageId: info.messageId };
+    } catch (error) {
+        console.error('❌ OTP email failed:', error.message);
+        return { success: false, error: error.message };
+    }
+};
 
 // Generate token with 1 day expiration
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
-        expiresIn: '1d' // Token expires in 1 day
+        expiresIn: '1d'
     });
 };
 
-// Generate device fingerprint (simple version - can be enhanced)
+// Generate device fingerprint
 const generateDeviceFingerprint = (req) => {
-    // Combine user agent and IP address (or use a more sophisticated method)
     return `${req.headers['user-agent'] || ''}_${req.ip || req.connection.remoteAddress}`;
 };
 
@@ -38,7 +67,7 @@ const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Send OTP email
+// Send OTP email - UPDATED with better formatting
 const sendOTPEmail = async (email, otp) => {
     const mailOptions = {
         from: `"Admin Portal Security" <${process.env.EMAIL_USER}>`,
@@ -52,37 +81,37 @@ const sendOTPEmail = async (email, otp) => {
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
             </head>
             <body style="font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
-                    <div style="max-width: 500px; margin: 50px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
-                            <h1 style="color: white; margin: 0; font-size: 24px;">Admin Portal</h1>
-                            <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Two-Factor Authentication</p>
+                <div style="max-width: 500px; margin: 50px auto; background: white; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px;">Admin Portal</h1>
+                        <p style="color: rgba(255,255,255,0.9); margin: 10px 0 0;">Two-Factor Authentication</p>
+                    </div>
+                    
+                    <div style="padding: 40px 30px;">
+                        <h2 style="color: #333; margin-top: 0;">Verification Required</h2>
+                        <p style="color: #666; line-height: 1.6;">Use the verification code below to complete your sign-in:</p>
+                        
+                        <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
+                            <div style="font-size: 42px; font-weight: bold; letter-spacing: 8px; color: #4f46e5; font-family: monospace;">
+                                ${otp}
+                            </div>
                         </div>
                         
-                        <div style="padding: 40px 30px;">
-                            <h2 style="color: #333; margin-top: 0;">Verification Required</h2>
-                            <p style="color: #666; line-height: 1.6;">Use the verification code below to complete your sign-in:</p>
-                            
-                            <div style="background: #f8f9fa; padding: 20px; border-radius: 12px; text-align: center; margin: 30px 0;">
-                                <div style="font-size: 42px; font-weight: bold; letter-spacing: 8px; color: #4f46e5; font-family: monospace;">
-                                    ${otp}
-                                </div>
-                            </div>
-                            
-                            <p style="color: #666; font-size: 14px;">This code will expire in <strong>10 minutes</strong>.</p>
-                            
-                            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 8px;">
-                                <p style="color: #92400e; margin: 0; font-size: 13px;">
-                                    <strong>⚠️ Security Tip:</strong> Never share this code with anyone.
-                                </p>
-                            </div>
+                        <p style="color: #666; font-size: 14px;">This code will expire in <strong>10 minutes</strong>.</p>
+                        
+                        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 12px; margin: 20px 0; border-radius: 8px;">
+                            <p style="color: #92400e; margin: 0; font-size: 13px;">
+                                <strong>⚠️ Security Tip:</strong> Never share this code with anyone.
+                            </p>
                         </div>
                     </div>
-                </body>
+                </div>
+            </body>
             </html>
         `
     };
 
-    await transporter.sendMail(mailOptions);
+    return await safeSendEmail(mailOptions);
 };
 
 export const registerUser = async (req, res) => {
@@ -136,7 +165,6 @@ export const loginUser = async (req, res) => {
         
         const { email, password, otp, rememberDevice } = req.body;
         
-        // Generate device fingerprint
         const deviceFingerprint = generateDeviceFingerprint(req);
         const trustKey = `${email}_${deviceFingerprint}`;
 
@@ -157,11 +185,9 @@ export const loginUser = async (req, res) => {
             });
         }
 
-        // Check if device is trusted (OTP not needed for trusted devices within 1 day)
         const trustedDevice = trustedDevices.get(trustKey);
         const isDeviceTrusted = trustedDevice && trustedDevice.expires > Date.now();
 
-        // If OTP is provided, verify it
         if (otp) {
             const storedOTP = otpStore.get(email);
             
@@ -187,19 +213,16 @@ export const loginUser = async (req, res) => {
                 });
             }
             
-            // Clear OTP after successful verification
             otpStore.delete(email);
             
-            // Trust this device for 1 day if requested
             if (rememberDevice) {
                 trustedDevices.set(trustKey, {
                     email,
                     deviceFingerprint,
-                    expires: Date.now() + 24 * 60 * 60 * 1000 // 1 day
+                    expires: Date.now() + 24 * 60 * 60 * 1000
                 });
             }
             
-            // Generate token
             const token = generateToken(user._id, user.role);
             
             return res.status(200).json({
@@ -214,7 +237,6 @@ export const loginUser = async (req, res) => {
             });
         }
         
-        // If device is trusted and within 1 day, skip OTP
         if (isDeviceTrusted) {
             console.log(`Device trusted for ${email}, skipping OTP`);
             const token = generateToken(user._id, user.role);
@@ -230,14 +252,17 @@ export const loginUser = async (req, res) => {
             });
         }
         
-        // First step - send OTP
         const otpCode = generateOTP();
         const expires = Date.now() + 10 * 60 * 1000;
         
         otpStore.set(email, { otp: otpCode, expires });
         
-        // Send email
-        sendOTPEmail(email, otpCode).catch(console.error);
+        // Send email and log result (doesn't block login)
+        const emailResult = await sendOTPEmail(email, otpCode);
+        
+        if (!emailResult.success) {
+            console.warn(`⚠️ OTP email failed to send to ${email} but login continues`);
+        }
         
         res.status(200).json({
             success: true,
@@ -270,7 +295,15 @@ export const resendOTP = async (req, res) => {
         const expires = Date.now() + 10 * 60 * 1000;
         
         otpStore.set(email, { otp: otpCode, expires });
-        sendOTPEmail(email, otpCode).catch(console.error);
+        
+        const emailResult = await sendOTPEmail(email, otpCode);
+        
+        if (!emailResult.success) {
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send verification code. Please check email configuration.'
+            });
+        }
         
         res.json({
             success: true,
