@@ -5,17 +5,15 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import connectDB from './config/database.js';
 
-// NM Routes import
+// NM Routes import - ALL CHANGED to start with './'
 import authRoutes from './routes/authRoutes.js';
-import jobRoutes from '../backend/routes/NM/jobRoutes.js'
-import appliRoutes from '../backend/routes/NM/appliRoutes.js'
+import jobRoutes from './routes/NM/jobRoutes.js'
+import appliRoutes from './routes/NM/appliRoutes.js'
+import concernRoutes from './routes/NM/concernRoutes.js'
 
-import concernRoutes from '../backend/routes/NM/concernRoutes.js'
-
-// Maple Routes import
-import appoRoutes from '../backend/routes/Maple/AppoRoutes.js'
-import sampleRoutes from '../backend/routes/Maple/sampleRoutes.js'
-
+// Maple Routes import - ALL CHANGED to start with './'
+import appoRoutes from './routes/Maple/AppoRoutes.js'
+import sampleRoutes from './routes/Maple/sampleRoutes.js'
 
 // Load environment variables
 dotenv.config();
@@ -33,10 +31,15 @@ const __dirname = path.dirname(__filename);
 app.use(cors({
     origin: '*',  
     credentials: true
-}));                          //  Cross-origin requests
-app.use(express.json());                  //  JSON API requests
-app.use(express.urlencoded({ extended: true })); // HTML form submissions
-app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Add a test route to debug
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'API test route is working!' });
+});
 
 // Public Routes
 app.use('/api/auth', authRoutes);
@@ -57,13 +60,13 @@ app.get('/', (req, res) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
+  console.error('Error:', err.stack);
+  res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
 // Handle 404 routes
 app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Route not found' });
+  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
 });
 
 const PORT = process.env.PORT || 5000;
