@@ -36,7 +36,7 @@ export const checkTimeSlotAvailability = async (req, res) => {
         const dayEnd = new Date(selectedDate);
         dayEnd.setHours(23, 59, 59, 999);
         
-        // ✅ Include both 'confirmed' AND 'rescheduled' appointments
+        // Get ALL confirmed and rescheduled appointments
         const existingAppointments = await Appointment.find({
             preferredDate: { $gte: dayStart, $lte: dayEnd },
             status: { $in: ['confirmed', 'rescheduled'] }
@@ -53,6 +53,11 @@ export const checkTimeSlotAvailability = async (req, res) => {
             const appEnd = new Date(appStart);
             appEnd.setHours(appStart.getHours() + app.durationHours);
             
+            console.log(`Checking against booking: ${app.preferredTime} to ${formatEndTime(app.preferredTime, app.durationHours)}`);
+            console.log(`Requested: ${time} to ${formatEndTime(time, parseInt(durationHours))}`);
+            console.log(`Overlap? ${selectedStart < appEnd && selectedEnd > appStart}`);
+            
+            // Check if the requested time slot overlaps with existing booking
             if ((selectedStart < appEnd && selectedEnd > appStart)) {
                 hasConflict = true;
                 conflictingAppointment = app;
@@ -76,6 +81,7 @@ export const checkTimeSlotAvailability = async (req, res) => {
     }
 };
 
+
 export const getAvailableTimeSlotsWithDuration = async (req, res) => {
     try {
         const { date } = req.query;
@@ -95,9 +101,17 @@ export const getAvailableTimeSlotsWithDuration = async (req, res) => {
         const dayEnd = new Date(selectedDate);
         dayEnd.setHours(23, 59, 59, 999);
         
+        // Get ALL confirmed and rescheduled appointments for this date
         const existingAppointments = await Appointment.find({
             preferredDate: { $gte: dayStart, $lte: dayEnd },
-            status: 'confirmed'
+            status: { $in: ['confirmed', 'rescheduled'] }
+        });
+        
+        console.log(`📅 Checking availability for ${date}`);
+        console.log(`Found ${existingAppointments.length} existing bookings:`);
+        existingAppointments.forEach(app => {
+            const endTime = formatEndTime(app.preferredTime, app.durationHours);
+            console.log(`   - ${app.preferredTime} to ${endTime} (${app.durationHours}h) - ${app.name}`);
         });
         
         // Define all possible time slots (30-minute intervals from 9 AM to 8 PM)
@@ -113,13 +127,20 @@ export const getAvailableTimeSlotsWithDuration = async (req, res) => {
         
         const availableSlots = {};
         
+        // For each time slot, check if it's available
         for (const slot of allTimeSlots) {
             const [hours, minutes] = slot.split(':');
             const slotStart = new Date(selectedDate);
             slotStart.setHours(parseInt(hours), parseInt(minutes), 0);
             
-            let isAvailable = true;
+            // Calculate slot end (30 minutes later for 30-min slots)
+            const slotEnd = new Date(slotStart);
+            slotEnd.setMinutes(slotEnd.getMinutes() + 30);
             
+            let isAvailable = true;
+            let conflictingAppointment = null;
+            
+            // Check against all existing appointments
             for (const app of existingAppointments) {
                 const [appHours, appMinutes] = app.preferredTime.split(':');
                 const appStart = new Date(selectedDate);
@@ -128,32 +149,43 @@ export const getAvailableTimeSlotsWithDuration = async (req, res) => {
                 const appEnd = new Date(appStart);
                 appEnd.setHours(appStart.getHours() + app.durationHours);
                 
-                const slotEnd = new Date(slotStart);
-                slotEnd.setHours(slotStart.getHours() + 1);
-                
+                // Check if this time slot overlaps with the existing booking
+                // Overlap occurs if: slotStart < appEnd AND slotEnd > appStart
                 if (slotStart < appEnd && slotEnd > appStart) {
                     isAvailable = false;
+                    conflictingAppointment = app;
                     break;
                 }
             }
             
             availableSlots[slot] = isAvailable;
+            if (!isAvailable) {
+                console.log(`   ❌ ${slot} is BOOKED`);
+            }
         }
+        
+        // Count available vs booked
+        const bookedCount = Object.values(availableSlots).filter(v => v === false).length;
+        const availableCount = Object.values(availableSlots).filter(v => v === true).length;
+        console.log(`📊 Results: ${availableCount} available, ${bookedCount} booked`);
         
         res.status(200).json({
             success: true,
             data: availableSlots,
-            allTimeSlots
+            allTimeSlots,
+            message: 'Available time slots retrieved successfully'
         });
         
     } catch (error) {
         console.error('Get Available Time Slots Error:', error);
         res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: 'Internal server error',
+            error: error.message
         });
     }
 };
+
 
 export const checkAvailability = async (req, res) => {
     try {

@@ -10,7 +10,7 @@ import {
     faInfoCircle
 } from '@fortawesome/free-solid-svg-icons';
 
-function PublicCalendar({ onDateSelect, selectedDate }) {
+function PublicCalendar({ onDateSelect, selectedDate, key }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [appointments, setAppointments] = useState([]);
@@ -18,18 +18,16 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
     const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
     const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
 
-    // Fetch confirmed appointments (to know which dates have bookings)
+    // Fetch confirmed and rescheduled appointments
     const fetchAppointments = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/appointments/confirmed', {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
+            const response = await fetch('http://localhost:5000/api/appointments/public/confirmed');
 
             if (response.ok) {
                 const result = await response.json();
                 if (result.success) {
                     setAppointments(result.data);
+                    console.log('PublicCalendar - Appointments loaded:', result.data.length);
                 }
             }
         } catch (error) {
@@ -37,24 +35,37 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
         }
     }, []);
 
-    // Fetch unavailable dates (completely unavailable days)
+    // Fetch unavailable dates
     const fetchUnavailableDates = useCallback(async () => {
         try {
-            const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/appointments/unavailable-dates', {
-                headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-            });
-
+            console.log('🔍 Fetching unavailable dates from public endpoint...');
+            // Change this URL to use the new public endpoint
+            const response = await fetch('http://localhost:5000/api/appointments/public/unavailable-dates');
+            
+            console.log('📡 Response status:', response.status);
+            
             if (response.ok) {
                 const result = await response.json();
+                console.log('📦 Unavailable dates response:', result);
+                
                 if (result.success) {
                     setUnavailableDates(result.data);
+                    console.log('✅ Unavailable dates loaded:', result.data.length);
+                    // Log each unavailable date for debugging
+                    result.data.forEach(u => {
+                        console.log(`   - ${u.date}: ${u.reason}`);
+                    });
+                } else {
+                    console.error('❌ API returned success=false:', result.message);
                 }
+            } else {
+                console.error('❌ HTTP error:', response.status, response.statusText);
             }
         } catch (error) {
-            console.error('Error fetching unavailable dates:', error);
+            console.error('❌ Error fetching unavailable dates:', error);
         }
     }, []);
+
 
     // Load all data
     const loadData = useCallback(async () => {
@@ -71,7 +82,7 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
 
     useEffect(() => {
         loadData();
-    }, [loadData]);
+    }, [loadData, key]);
 
     // Calendar helpers
     const getDaysInMonth = (year, month) => {
@@ -110,31 +121,45 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
         setCurrentYear(today.getFullYear());
     };
 
-    // Check if a date has any appointments (but still may have available slots)
+    // Check if a date has any appointments (confirmed or rescheduled)
     const hasAppointments = (day) => {
         const date = new Date(currentYear, currentMonth, day);
-        return appointments.some(app => {
+        date.setHours(0, 0, 0, 0);
+        
+        const hasBooking = appointments.some(app => {
             const appDate = new Date(app.preferredDate);
-            return appDate.toDateString() === date.toDateString();
+            appDate.setHours(0, 0, 0, 0);
+            return appDate.getTime() === date.getTime();
         });
+        
+        return hasBooking;
     };
 
-    // Check if a date is completely unavailable (no appointments possible)
+    // Check if a date is completely unavailable
     const isUnavailable = (day) => {
         const date = new Date(currentYear, currentMonth, day);
-        return unavailableDates.some(u => {
+        date.setHours(0, 0, 0, 0);
+        
+        const unavailable = unavailableDates.some(u => {
             const uDate = new Date(u.date);
-            return uDate.toDateString() === date.toDateString();
+            uDate.setHours(0, 0, 0, 0);
+            return uDate.getTime() === date.getTime();
         });
+        
+        return unavailable;
     };
 
     const getUnavailableReason = (day) => {
         const date = new Date(currentYear, currentMonth, day);
+        date.setHours(0, 0, 0, 0);
+        
         const unavailable = unavailableDates.find(u => {
             const uDate = new Date(u.date);
-            return uDate.toDateString() === date.toDateString();
+            uDate.setHours(0, 0, 0, 0);
+            return uDate.getTime() === date.getTime();
         });
-        return unavailable?.reason || '';
+        
+        return unavailable?.reason || 'Not Available';
     };
 
     const isPastDate = (day) => {
@@ -146,10 +171,11 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
 
     const isAvailable = (day) => {
         if (!day) return false;
+        // Date is available if it's NOT past AND NOT unavailable
         return !isPastDate(day) && !isUnavailable(day);
     };
 
-    // Handle date selection - FIXED: Preserve local date without timezone conversion
+    // Handle date selection
     const handleDateSelect = (day) => {
         if (!day) return;
         
@@ -163,7 +189,6 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
             return;
         }
         
-        // Create date in local timezone to avoid offset issues
         const date = new Date(currentYear, currentMonth, day);
         if (onDateSelect) {
             onDateSelect(date);
@@ -174,8 +199,12 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
     const isSelectedDate = (day) => {
         if (!selectedDate || !day) return false;
         const date = new Date(currentYear, currentMonth, day);
+        date.setHours(0, 0, 0, 0);
+        
         const selected = new Date(selectedDate);
-        return date.toDateString() === selected.toDateString();
+        selected.setHours(0, 0, 0, 0);
+        
+        return date.getTime() === selected.getTime();
     };
 
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
@@ -261,7 +290,6 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
                         const available = day ? isAvailable(day) : false;
                         const selected = day ? isSelectedDate(day) : false;
                         
-                        // Determine cell styling
                         let cellBgClass = '';
                         let cursorClass = '';
                         
@@ -296,7 +324,7 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
                                         <div className={`text-xs font-medium mb-1 ${isToday ? 'text-blue-600' : selected ? 'text-blue-700' : 'text-gray-700'}`}>
                                             {day}
                                             {isToday && <span className="ml-0.5 text-[10px] text-blue-500">Today</span>}
-                                            {unavailable && <span className="ml-0.5 text-[10px] text-red-500">❌</span>}
+                                            {unavailable && <span className="ml-0.5 text-[10px] text-red-500"></span>}
                                             {selected && !unavailable && <span className="ml-0.5 text-[10px] text-blue-500">✓</span>}
                                             {hasBookings && !unavailable && !selected && <span className="ml-0.5 text-[10px] text-orange-500">📅</span>}
                                         </div>
@@ -308,18 +336,18 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
                                             </div>
                                         )}
                                         {hasBookings && !unavailable && !selected && (
-                                            <div className="text-[10px] text-orange-600 mt-0.5">
-                                                Has Bookings
+                                            <div className="text-[10px] text-orange-600 mt-0.5 flex items-center gap-0.5">
+                                                <span>📅</span> Has Booking
                                             </div>
                                         )}
                                         {available && !selected && !hasBookings && (
                                             <div className="text-[10px] text-green-600 mt-0.5">
-                                                Available
+                                                ✓ Available
                                             </div>
                                         )}
                                         {pastDate && !unavailable && (
                                             <div className="text-[10px] text-gray-400 mt-0.5">
-                                                Past
+                                Past
                                             </div>
                                         )}
                                     </>
@@ -330,7 +358,7 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
                 </div>
             </div>
 
-            {/* Legend - Color Code Information */}
+            {/* Legend */}
             <div className="px-3 py-2 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center gap-1 mb-1.5">
                     <FontAwesomeIcon icon={faInfoCircle} className="text-gray-400 text-[10px]" />
@@ -361,7 +389,7 @@ function PublicCalendar({ onDateSelect, selectedDate }) {
                 <div className="mt-2 pt-1 border-t border-gray-200">
                     <p className="text-[10px] text-gray-400 flex items-center gap-1">
                         <FontAwesomeIcon icon={faInfoCircle} className="text-[10px]" />
-                        Click on any available date to select it. Multiple time slots may be available per day.
+                        Click on any available date to select it. Dates with 📅 already have bookings but may still be available depending on time.
                     </p>
                 </div>
             </div>

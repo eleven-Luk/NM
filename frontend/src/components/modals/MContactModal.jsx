@@ -64,15 +64,33 @@ function MContactModal({ isOpen, onClose, appointment }) {
     }, [formData.preferredDate]);
 
     const fetchAvailableTimeSlots = async (date) => {
-        setCheckingAvailability(true);
+    setCheckingAvailability(true);
         try {
+            console.log(`🔍 Fetching available time slots for date: ${date}`);
             const response = await fetch(`http://localhost:5000/api/appointments/available-time-slots?date=${date}`);
 
             if (response.ok) {
                 const result = await response.json();
+                console.log('📦 Available time slots response:', result);
+                
                 if (result.success) {
                     setAvailableTimeSlots(result.data || {});
+                    
+                    // Log which slots are available vs booked
+                    const bookedSlots = [];
+                    const availableSlotsList = [];
+                    for (const [time, isAvailable] of Object.entries(result.data)) {
+                        if (!isAvailable) {
+                            bookedSlots.push(time);
+                        } else {
+                            availableSlotsList.push(time);
+                        }
+                    }
+                    console.log('✅ Available slots:', availableSlotsList);
+                    console.log('❌ Booked slots:', bookedSlots);
                 }
+            } else {
+                console.error('❌ Failed to fetch time slots:', response.status);
             }
         } catch (error) {
             console.error('Error fetching time slots:', error);
@@ -81,7 +99,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
         }
     };
 
-    // Check time slot availability with duration
+    // Check time slot availability with duration (for final submission verification)
     const checkTimeSlotAvailability = async (date, time, duration) => {
         try {
             const response = await fetch(`http://localhost:5000/api/appointments/check-time-slot?date=${date}&time=${time}&durationHours=${duration}`);
@@ -130,9 +148,17 @@ function MContactModal({ isOpen, onClose, appointment }) {
             setSelectedTimeRange({ start: '', end: '' });
         }
         
-        // Reset other location when location type changes from other
-        if (name === 'locationType' && value !== 'other') {
-            setFormData(prev => ({ ...prev, locationOther: '' }));
+        // Reset other location when location type changes
+        if (name === 'locationType') {
+            if (value !== 'other') {
+                setFormData(prev => ({ ...prev, locationOther: '' }));
+            }
+            if (value !== 'outdoor') {
+                setFormData(prev => ({ ...prev, locationOutdoor: '' }));
+            }
+            if (value !== 'client-home') {
+                setFormData(prev => ({ ...prev, locationClientHome: '' }));
+            }
         }
     };
 
@@ -151,29 +177,30 @@ function MContactModal({ isOpen, onClose, appointment }) {
         setError('');
     };
 
-    const handleTimeSelect = async (time) => {
+    // SIMPLIFIED: No extra API call - dropdown already shows disabled options
+    const handleTimeSelect = (time) => {
         if (!formData.durationHours) {
             setError('Please select duration hours first');
             return;
         }
         
-        const availability = await checkTimeSlotAvailability(formData.preferredDate, time, formData.durationHours);
-        
-        if (!availability.isAvailable) {
-            setError(`This time slot is not available. ${availability.conflictingTime ? `Conflicts with booking from ${availability.conflictingTime}` : ''}`);
-            setTimeout(() => setError(''), 3000);
-            return;
-        }
-        
+        // Just set the time - no extra availability check needed
         setFormData(prev => ({ ...prev, preferredTime: time }));
         if (validationErrors.preferredTime) {
             setValidationErrors(prev => ({ ...prev, preferredTime: '' }));
         }
+        setError('');
     };
 
     const getFinalLocation = () => {
         if (formData.locationType === 'other') {
-            return formData.locationOther.trim() || 'Other Location';
+            return formData.locationOther?.trim() || 'Other Location';
+        }
+        if (formData.locationType === 'outdoor') {
+            return formData.locationOutdoor?.trim() || 'Outdoor Location';
+        }
+        if (formData.locationType === 'client-home') {
+            return formData.locationClientHome?.trim() || 'Client\'s Home';
         }
         const location = locationOptions.find(opt => opt.value === formData.locationType);
         return location ? location.label : 'Studio Session';
@@ -208,6 +235,10 @@ function MContactModal({ isOpen, onClose, appointment }) {
             errors.location = 'Please select a location';
         } else if (formData.locationType === 'other' && !formData.locationOther?.trim()) {
             errors.location = 'Please enter the location';
+        } else if (formData.locationType === 'outdoor' && !formData.locationOutdoor?.trim()) {
+            errors.location = 'Please enter the outdoor location';
+        } else if (formData.locationType === 'client-home' && !formData.locationClientHome?.trim()) {
+            errors.location = 'Please enter the client home location';
         }
         
         // Add authorization validation
@@ -223,12 +254,15 @@ function MContactModal({ isOpen, onClose, appointment }) {
         e.preventDefault();
         if (!validateForm()) return;
 
+        // Final verification before submission (prevents race conditions)
         const availability = await checkTimeSlotAvailability(formData.preferredDate, formData.preferredTime, formData.durationHours);
         
         if (!availability.isAvailable) {
             setError(`This time slot is no longer available. Please select another time.`);
             setFormData(prev => ({ ...prev, preferredTime: '' }));
             setSelectedTimeRange({ start: '', end: '' });
+            // Refresh available time slots
+            fetchAvailableTimeSlots(formData.preferredDate);
             return;
         }
 
@@ -524,7 +558,6 @@ function MContactModal({ isOpen, onClose, appointment }) {
                                 </div>
                             )}
                             
-
                             {formData.locationType === 'client-home' && (
                                 <div className="mt-2">
                                     <input

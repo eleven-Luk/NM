@@ -36,6 +36,10 @@ router.get('/available-time-slots', getAvailableTimeSlotsWithDuration);
 router.post('/check-availability', checkAvailability);
 router.post('/available-slots', getAvailableTimeSlots);
 
+// ✅ PUBLIC endpoint for unavailable dates (used by PublicCalendar)
+router.get('/public/unavailable-dates', getUnavailableDates);  
+router.get('/public/confirmed', getConfirmedAppointments); 
+
 // ==================== PROTECTED ROUTES ====================
 // CRUD Operations
 router.get('/get', protect, getAppointments);

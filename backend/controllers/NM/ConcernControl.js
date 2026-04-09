@@ -217,6 +217,193 @@ const sendStatusUpdateEmail = async (concern, newStatus, adminMessage, priority)
     return info;
 };
 
+const sendNewConcernNotification = async (concernData) => {
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    
+    const businessName = concernData.businessType === 'maple' ? 'Maple Photography' : 'N&M Staffing Services';
+    const businessIcon = concernData.businessType === 'maple' ? '📸' : '🏢';
+    const businessColor = concernData.businessType === 'maple' ? '#f97316' : '#3b82f6';
+    
+    const inquiryTypeLabels = {
+        'general': 'General Inquiry',
+        'package-information': 'Package Information',
+        'employer-partnership': 'Employer Partnership',
+        'others': 'Others'
+    };
+    
+    const mailOptions = {
+        from: `"${businessName} Website" <${process.env.EMAIL_USER}>`,
+        to: adminEmail,
+        subject: `📧 NEW ${businessName.toUpperCase()} INQUIRY - ${concernData.name}`,
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: ${businessColor}; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; }
+                    .detail-row { margin-bottom: 15px; padding: 10px; background: white; border-radius: 8px; border-left: 4px solid ${businessColor}; }
+                    .label { font-weight: bold; color: #4b5563; font-size: 12px; text-transform: uppercase; margin-bottom: 5px; }
+                    .value { color: #1f2937; font-size: 16px; }
+                    .badge { display: inline-block; padding: 5px 12px; background: #fef3c7; color: #92400e; border-radius: 20px; font-size: 12px; font-weight: bold; }
+                    .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div style="font-size: 48px; margin-bottom: 10px;">${businessIcon}</div>
+                        <h2>New ${businessName} Inquiry</h2>
+                        <p>A new message has been submitted on the website</p>
+                    </div>
+                    <div class="content">
+                        <div style="text-align: center; margin-bottom: 20px;">
+                            <span class="badge">${inquiryTypeLabels[concernData.inquiryType] || concernData.inquiryType}</span>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="label">👤 Name</div>
+                            <div class="value">${concernData.name}</div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="label">📧 Email</div>
+                            <div class="value">${concernData.email}</div>
+                        </div>
+                        
+                        <div class="detail-row">
+                            <div class="label">📞 Phone</div>
+                            <div class="value">${concernData.phone}</div>
+                        </div>
+                        
+                        ${concernData.companyName ? `
+                        <div class="detail-row">
+                            <div class="label">🏢 Company Name</div>
+                            <div class="value">${concernData.companyName}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${concernData.position ? `
+                        <div class="detail-row">
+                            <div class="label">💼 Position</div>
+                            <div class="value">${concernData.position}</div>
+                        </div>
+                        ` : ''}
+                        
+                        ${concernData.packageType ? `
+                        <div class="detail-row">
+                            <div class="label">📦 Package Type</div>
+                            <div class="value">${concernData.packageType}</div>
+                        </div>
+                        ` : ''}
+                        
+                        <div class="detail-row">
+                            <div class="label">💬 Message</div>
+                            <div class="value">${concernData.message}</div>
+                        </div>
+                        
+                        <div style="background: #e0e7ff; padding: 15px; border-radius: 8px; margin-top: 20px;">
+                            <p style="margin: 0; color: #3730a3; font-size: 14px;">
+                                <strong>⚠️ Action Required:</strong> Please review this inquiry and update its status in the admin dashboard.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="footer">
+                        <p>${businessName} Contact System</p>
+                        <p>© ${new Date().getFullYear()} ${businessName}. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `
+    };
+    
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ New concern notification sent to admin: ${info.messageId}`);
+        return info;
+    } catch (error) {
+        console.error('❌ Failed to send admin notification:', error);
+        throw error;
+    }
+};
+
+// Send auto-reply to client
+const sendClientAutoReply = async (concernData) => {
+    const businessName = concernData.businessType === 'maple' ? 'Maple Photography' : 'N&M Staffing Services';
+    const businessIcon = concernData.businessType === 'maple' ? '📸' : '🏢';
+    const businessColor = concernData.businessType === 'maple' ? '#f97316' : '#3b82f6';
+    
+    const mailOptions = {
+        from: `"${businessName}" <${process.env.EMAIL_USER}>`,
+        to: concernData.email,
+        subject: `We've received your message - ${businessName}`,
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <style>
+                    body { font-family: 'Segoe UI', Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: ${businessColor}; color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none; }
+                    .footer { text-align: center; padding: 20px; color: #9ca3af; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div style="font-size: 48px; margin-bottom: 10px;">${businessIcon}</div>
+                        <h2>Thank You for Reaching Out!</h2>
+                    </div>
+                    <div class="content">
+                        <p>Dear ${concernData.name},</p>
+                        <p>Thank you for contacting ${businessName}. We have received your message and appreciate you reaching out to us.</p>
+                        
+                        <div style="background: #e0e7ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="margin: 0 0 10px 0; color: #3730a3;">Your Message Summary:</h3>
+                            <p style="margin: 0;"><strong>Inquiry Type:</strong> ${concernData.inquiryType}</p>
+                            <p style="margin: 10px 0 0 0;"><strong>Message:</strong></p>
+                            <p style="margin: 5px 0 0 0; font-style: italic;">"${concernData.message.substring(0, 200)}${concernData.message.length > 200 ? '...' : ''}"</p>
+                        </div>
+                        
+                        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 0; color: #92400e;">
+                                <strong>📌 What's Next?</strong><br>
+                                Our team will review your message and get back to you within 24 hours via email or phone.
+                                You will receive another notification once we've responded to your inquiry.
+                            </p>
+                        </div>
+                        
+                        <p>If you need immediate assistance, please don't hesitate to call us.</p>
+                        <p>Best regards,<br><strong>${businessName} Team</strong></p>
+                    </div>
+                    <div class="footer">
+                        <p>© ${new Date().getFullYear()} ${businessName}. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `
+    };
+    
+    try {
+        const info = await transporter.sendMail(mailOptions);
+        console.log(`✅ Auto-reply sent to ${concernData.email}: ${info.messageId}`);
+        return info;
+    } catch (error) {
+        console.error('❌ Failed to send auto-reply:', error);
+        throw error;
+    }
+};
+
+
 // Create Concern
 export const createConcerns = async (req, res) => {
     try {
@@ -258,9 +445,39 @@ export const createConcerns = async (req, res) => {
             packageType: packageType ? packageType.trim() : undefined,
         });
 
+        // Send email notifications
+        try {
+            // 1. Send notification to ADMIN
+            await sendNewConcernNotification({
+                name: name.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                message: message.trim(),
+                businessType,
+                inquiryType,
+                companyName: companyName || null,
+                position: position || null,
+                packageType: packageType || null
+            });
+            
+            // 2. Send auto-reply to CLIENT
+            await sendClientAutoReply({
+                name: name.trim(),
+                email: email.trim(),
+                message: message.trim(),
+                businessType,
+                inquiryType
+            });
+            
+            console.log('✅ Both admin and client emails sent successfully for concern');
+        } catch (emailError) {
+            console.error('❌ Email sending failed for concern:', emailError);
+            // Don't fail the concern creation if email fails
+        }
+
         res.status(201).json({
             success: true,
-            message: 'Your message has been sent successfully!',
+            message: 'Your message has been sent successfully! A confirmation email has been sent to your inbox.',
             data: newConcern,
         });
 
@@ -283,6 +500,7 @@ export const createConcerns = async (req, res) => {
         });
     }
 };
+
 
 // Get concerns by business type
 export const getConcernsByBusinessType = async (req, res) => {

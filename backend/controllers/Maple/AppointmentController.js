@@ -1,6 +1,7 @@
 // controllers/Maple/AppointmentController.js
 import Appointment from "../../models/Maple/Appointment.js";
 import UnavailableDate from "../../models/Maple/UnavailableDate.js";
+import { sendNewAppointmentNotification, sendClientConfirmationEmail } from '../../utils/emailService.js';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 
@@ -235,9 +236,40 @@ export const createAppointment = async (req, res) => {
             status: 'pending'
         });
 
+        // Send email notifications
+        try {
+            // Send notification to admin
+            await sendNewAppointmentNotification({
+                name: name.trim(),
+                email: email.trim(),
+                phone: phone.trim(),
+                packageType: packageType,
+                preferredDate: preferredDate,
+                preferredTime: preferredTime,
+                durationHours: durationHours,
+                location: location,
+                specialRequests: specialRequests || ''
+            });
+            
+            // Send confirmation to client
+            await sendClientConfirmationEmail({
+                name: name.trim(),
+                email: email.trim(),
+                packageType: packageType,
+                preferredDate: preferredDate,
+                preferredTime: preferredTime,
+                location: location
+            });
+            
+            console.log('✅ Both admin and client emails sent successfully');
+        } catch (emailError) {
+            console.error('❌ Email sending failed:', emailError);
+            // Don't fail the appointment creation if email fails
+        }
+
         return res.status(201).json({
             success: true,
-            message: 'Your appointment has been booked successfully!',
+            message: 'Your appointment has been booked successfully! A confirmation email has been sent.',
             data: newAppointment,
         });
     } catch (error) {
@@ -258,6 +290,7 @@ export const createAppointment = async (req, res) => {
         });
     }
 };
+
 
 // ==================== READ ====================
 export const getAppointments = async (req, res) => {

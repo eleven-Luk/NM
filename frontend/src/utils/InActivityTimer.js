@@ -1,5 +1,5 @@
 class InactivityTimer {
-    constructor(logoutCallback, timeoutMinutes = 2) {
+    constructor(logoutCallback, timeoutMinutes = 60) {
         this.logoutCallback = logoutCallback;
         this.timeoutMinutes = timeoutMinutes;
         this.timeoutMs = timeoutMinutes * 60 * 1000; // Convert to milliseconds

@@ -7,7 +7,7 @@ function Layout ({ children }) {
     return (
         <div className="flex min-h-screen bg-gray-100">
             {/* Session Timeout - applies to all admin pages */}
-            <SessionTimeout timeoutMinutes={10} />
+            <SessionTimeout timeoutMinutes={60} />
             
             <div className="sticky top-0 h-screen">
                 <Sidebar />
