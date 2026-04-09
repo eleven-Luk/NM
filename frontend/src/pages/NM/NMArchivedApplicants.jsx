@@ -26,7 +26,7 @@ import ViewAppModal from "../../components/modals/NM/applicants/ViewAppModal";
 import RestoreModal from "../../components/modals/NM/applicants/archieve/RestoreModal.jsx";
 import DeleteModal from "../../components/modals/NM/applicants/archieve/DeleteModal.jsx";
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 function NMApplicantsArchive() {
     // State declarations

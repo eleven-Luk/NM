@@ -26,7 +26,8 @@ import ViewArchivedJobModal from "../../components/modals/NM/jobs/archived/ViewA
 import RestoreJobModal from "../../components/modals/NM/jobs/archived/RestoreJobModal.jsx";
 import DeleteJobModal from "../../components/modals/NM/jobs/archived/DeleteJobModal.jsx";
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
+
 
 function NMArchivedJob() {
     const [loading, setLoading] = useState(true);

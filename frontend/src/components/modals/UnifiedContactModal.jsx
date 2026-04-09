@@ -17,7 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx';
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 function UnifiedContactModal({ isOpen, onClose }) {
     const [formData, setFormData] = useState({

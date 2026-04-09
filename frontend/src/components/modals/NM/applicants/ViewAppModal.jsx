@@ -22,7 +22,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../common/ViewModal';
 import LoadingSpinner from '../../../common/LoadingSpinner';
-import api from '../services/api.js';
+import api from '../../../../services/api.js';
 
 const ViewAppModal = ({ isOpen, onClose, application }) => {
     const [loading, setLoading] = useState(false);

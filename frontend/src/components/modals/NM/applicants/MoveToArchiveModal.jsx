@@ -2,7 +2,8 @@ import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArchive, faExclamationTriangle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import ConfirmModal from '../../common/ConfirmModal.jsx';
-import api from '../services/api.js';
+import api from '../../../../services/api.js';
+
 
 const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, application }) => {
     const [isLoading, setIsLoading] = React.useState(false);

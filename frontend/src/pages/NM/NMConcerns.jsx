@@ -26,7 +26,8 @@ import EditConcernModal from "../../components/modals/NM/concerns/EditConcernMod
 import ViewConcernModal from "../../components/modals/NM/concerns/ViewConcernModal"
 import DeleteConfirmModal from "../../components/modals/NM/concerns/DeleteConfirmModal"
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
+
 
 function NMConcerns(){
     const [loading, setLoading] = useState(true);

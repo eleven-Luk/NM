@@ -30,7 +30,7 @@ import NMContactModal from '../../components/modals/NMContactModal';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import FilterBar from '../../components/common/FilterBar';
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
 import bgImg from '../../assets/NM.png';
 
 function Jobs() {

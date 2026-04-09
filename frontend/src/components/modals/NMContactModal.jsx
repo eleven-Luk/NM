@@ -14,7 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 function NMContactModal({ isOpen, onClose, job }) {
     const [formData, setFormData] = useState({

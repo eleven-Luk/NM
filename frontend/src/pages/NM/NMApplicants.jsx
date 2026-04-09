@@ -17,7 +17,7 @@ import {
 
 import FilterBar from "../../components/common/FilterBar";
 import ApplicantTable from "../../components/tables/ApplicantTable";
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 // Modals
 import EditAppModal from "../../components/modals/NM/applicants/EditAppModal.jsx";

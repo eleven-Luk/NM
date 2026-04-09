@@ -10,7 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../common/ViewModal.jsx';
 import LoadingSpinner from '../../../../components/common/LoadingSpinner.jsx';
-import api from '../services/api.js';
+import api from '../../../../services/api.js';
 
 function ViewJobModal({ jobId, isOpen, onClose }) {
     const [job, setJob] = useState(null);

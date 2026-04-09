@@ -20,7 +20,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 const NMDashboard = () => {
     const [loading, setLoading] = useState(true);

@@ -18,7 +18,7 @@ import {
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PublicCalendar from '../../components/calendar/PublicCalendar';
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 function MContactModal({ isOpen, onClose, appointment }) {
     const [formData, setFormData] = useState({

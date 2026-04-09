@@ -17,7 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../../common/ViewModal.jsx';
 import LoadingSpinner from '../../../../common/LoadingSpinner.jsx';
-import api from '../services/api.js';
+import api from '../../../../../services/api.js';
 
 function ViewArchivedJobModal({ isOpen, onClose, jobId }) {
     const [loading, setLoading] = useState(false);

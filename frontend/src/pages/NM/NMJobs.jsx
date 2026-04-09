@@ -28,7 +28,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import FilterBar from "../../components/common/FilterBar.jsx";
 
-import api from '../services/api.js';
+import api from '../../services/api.js';
 
 
 function NMJobs(){
