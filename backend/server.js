@@ -45,7 +45,13 @@ app.get('/api/test', (req, res) => {
 app.use('/api/auth', authRoutes);
 
 // Protected Routes NM
-app.use('/api/jobs', jobRoutes);
+try {
+  app.use('/api/jobs', jobRoutes);
+  console.log('✅ Jobs routes registered');
+} catch (err) {
+  console.error('❌ Failed to register jobs routes:', err);
+}
+
 app.use('/api/applications', appliRoutes);
 app.use('/api/concerns', concernRoutes);
 
