@@ -28,7 +28,6 @@ import DeleteJobModal from "../../components/modals/NM/jobs/archived/DeleteJobMo
 
 import api from '../../services/api.js';
 
-
 function NMArchivedJob() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -67,31 +66,20 @@ function NMArchivedJob() {
                 return;
             }
             
+            // api.get returns the parsed response directly
             const response = await api.get('/jobs/archived', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (response.status === 401) {
-                localStorage.removeItem('token');
-                navigate('/login');
-                throw new Error('Session expired. Please log in again.');
-            }
-
-            if (!response.ok) {
-                throw new Error(`Failed to fetch archived jobs ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.success) {
-                const sortedJobs = (result.data || []).sort((a, b) => 
+            if (response && response.success) {
+                const sortedJobs = (response.data || []).sort((a, b) => 
                     new Date(b.archivedAt) - new Date(a.archivedAt)
                 );
                 setArchivedJobs(sortedJobs);
                 setSuccessMessage('Archived jobs loaded successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
-                throw new Error(result.message || 'Failed to load archived jobs');
+                throw new Error(response?.message || 'Failed to load archived jobs');
             }
             
         } catch (error) {

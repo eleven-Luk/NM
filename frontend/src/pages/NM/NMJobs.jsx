@@ -71,25 +71,22 @@ function NMJobs(){
         setError(null);
         try {
             const token = localStorage.getItem('token');
+            
+            // api.get already returns the parsed response data
             const response = await api.get('/jobs/all', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            if (!response.ok){
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-
-            if (result.success) {
-                const sortedJobs = (result.data || []).sort((a, b) =>
+            // With axios, response IS the data (no .json() needed)
+            if (response && response.success) {
+                const sortedJobs = (response.data || []).sort((a, b) =>
                     new Date(b.createdAt) - new Date(a.createdAt)
                 );
                 setJobs(sortedJobs);
                 setSuccessMessage('Jobs fetched successfully');
                 setTimeout(() => setSuccessMessage(''), 3000);
             } else {
-                throw new Error(result.message || 'Failed to fetch jobs');
+                throw new Error(response?.message || 'Failed to fetch jobs');
             }
         } catch (error) {
             console.error('Error fetching jobs:', error);
@@ -119,15 +116,8 @@ function NMJobs(){
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json', 
-                    },
-                    body: JSON.stringify(jobData) 
+                    }
                 });
-
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-
-            const result = await response.json();
 
             if (result.success){
                 setJobs(prev => [result.data, ...prev]);
@@ -165,22 +155,20 @@ function NMJobs(){
             console.log('Updating job with data:', jobData);
 
             const response = await api.put(`/jobs/update/${jobData.id}`, {
+                name: jobData.name,
+                description: jobData.description,
+                type: jobData.type,
+                salary: jobData.salary,
+                location: jobData.location,
+                status: jobData.status
+            }, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    name: jobData.name,
-                    description: jobData.description,
-                    type: jobData.type,
-                    salary: jobData.salary,
-                    location: jobData.location,
-                    status: jobData.status
-                })
+                }
             });
 
-            const result = await response.json();
-            console.log('Update response:', result);
+            console.log('Update response:', response);
 
             if (result.success) {
                 // Update the jobs list with the updated job
@@ -220,30 +208,27 @@ function NMJobs(){
                 }
             });
 
-            const result = await response.json();
-
-            if (result.success) {
-                    // Remove the archived job from the list
-                    setJobs(prev => prev.filter(job => job._id !== selectedJob._id));
-                    
-                    // Also remove from newJobs if it's there
-                    if (showNewJob) {
-                        setNewJobs(prev => prev.filter(job => job._id !== selectedJob._id));
-                    }
-                    
-                    setSuccessMessage('Job archived successfully!');
-                    setTimeout(() => setSuccessMessage(''), 3000);
-                    setShowArchiveModal(false);
-                    setSelectedJob(null);
-                } else {
-                    throw new Error(result.message || 'Failed to archive job');
+            if (response && response.success) {
+                setJobs(prev => prev.filter(job => job._id !== selectedJob._id));
+                
+                if (showNewJob) {
+                    setNewJobs(prev => prev.filter(job => job._id !== selectedJob._id));
                 }
-            } catch (error) {
-                console.error('Error archiving job:', error);
-                setError(error.message || 'Failed to archive job');
+                
+                setSuccessMessage('Job archived successfully!');
+                setTimeout(() => setSuccessMessage(''), 3000);
+                setShowArchiveModal(false);
+                setSelectedJob(null);
+            } else {
+                throw new Error(response?.message || 'Failed to archive job');
             }
+        } catch (error) {
+            console.error('Error archiving job:', error);
+            setError(error.message || 'Failed to archive job');
         }
-    };
+    }
+};
+
 
     const handleArchive = (job) => {
         setSelectedJob(job);
