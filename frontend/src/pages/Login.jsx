@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+// import axios from 'axios';
+import api from '../services/api.js';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { 
     faEye, 
@@ -71,7 +72,7 @@ function Login() {
         
         setResendLoading(true);
         try {
-            const response = await axios.post('http://localhost:5000/api/auth/resend-otp', {
+            const response = await api.post('/auth/resend-otp', {
                 email: formData.email
             });
             
@@ -111,7 +112,7 @@ function Login() {
                 payload.rememberDevice = rememberDevice; // Send remember device preference
             }
             
-            const response = await axios.post('http://localhost:5000/api/auth/login', payload);
+            const response = await api.post('/auth/login', payload);
             
             if (response.data.requiresOTP) {
                 setRequiresOTP(true);
