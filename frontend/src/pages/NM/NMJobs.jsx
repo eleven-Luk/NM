@@ -28,6 +28,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import FilterBar from "../../components/common/FilterBar.jsx";
 
+import api from '../services/api.js';
+
 
 function NMJobs(){
     const [jobs, setJobs] = useState([]);
@@ -69,7 +71,7 @@ function NMJobs(){
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/jobs/all', {
+            const response = await api.get('/jobs/all', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -112,9 +114,8 @@ function NMJobs(){
                 return navigate('/login');
             }
 
-            const response = await fetch('http://localhost:5000/api/jobs/create', 
+            const response = await api.post('/jobs/create', 
                 {
-                    method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Content-Type': 'application/json', 
@@ -163,8 +164,7 @@ function NMJobs(){
 
             console.log('Updating job with data:', jobData);
 
-            const response = await fetch(`http://localhost:5000/api/jobs/update/${jobData.id}`, {
-                method: 'PUT',
+            const response = await api.put(`/jobs/update/${jobData.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json',
@@ -213,8 +213,7 @@ function NMJobs(){
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/jobs/archive/${selectedJob._id}`, {
-                method: 'PATCH',
+            const response = await api.patch(`/jobs/archive/${selectedJob._id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

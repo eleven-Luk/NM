@@ -26,6 +26,8 @@ import EditConcernModal from "../../components/modals/NM/concerns/EditConcernMod
 import ViewConcernModal from "../../components/modals/NM/concerns/ViewConcernModal"
 import DeleteConfirmModal from "../../components/modals/NM/concerns/DeleteConfirmModal"
 
+import api from '../services/api.js';
+
 function NMConcerns(){
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -77,8 +79,8 @@ function NMConcerns(){
                 navigate('/login');
                 return;
             }
-
-            const response = await fetch('http://localhost:5000/api/concerns/business/nm', { 
+            
+            const response = await api.get('/concerns/business/nm', { 
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -119,8 +121,7 @@ function NMConcerns(){
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/concerns/update/${concernId}`, {
-                method: 'PUT',
+            const response = await api.put(`/concerns/update/${concernId}`, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -171,8 +172,7 @@ function NMConcerns(){
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/concerns/delete/${concernId}`, {
-                method: 'DELETE',
+            const response = await api.delete(`/concerns/delete/${concernId}`, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -254,8 +254,7 @@ function NMConcerns(){
             // Delete each selected concern
             for (const concernId of selectedConcerns) {
                 try {
-                    const response = await fetch(`http://localhost:5000/api/concerns/delete/${concernId}`, {
-                        method: 'DELETE',
+                    const response = await api.delete(`/concerns/delete/${concernId}`, {
                         headers: { 
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'

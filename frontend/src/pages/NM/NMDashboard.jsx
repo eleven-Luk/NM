@@ -20,6 +20,8 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
+import api from '../services/api.js';
+
 const NMDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -57,17 +59,17 @@ const NMDashboard = () => {
                 return;
             }
 
-            const jobsResponse = await fetch('http://localhost:5000/api/jobs/all', {
+            const jobsResponse = await api.get('/jobs/all', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const jobsResult = await jobsResponse.json();
             
-            const applicantsResponse = await fetch('http://localhost:5000/api/applications/getAll', {
+            const applicantsResponse = await api.get('/applications/getAll', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const applicantsResult = await applicantsResponse.json();
             
-            const concernsResponse = await fetch('http://localhost:5000/api/concerns/business/nm', {
+            const concernsResponse = await api.get('/concerns/business/nm', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const concernsResult = await concernsResponse.json();

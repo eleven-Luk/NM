@@ -17,6 +17,7 @@ import {
 import MContactModal from '../components/modals/MContactModal';
 import NMContactModal from '../components/modals/NMContactModal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
+import api from '../services/api.js';
 
 // Sample images
 import S1 from '../assets/MapleSample1.jpg';
@@ -60,7 +61,7 @@ function Body() {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch('http://localhost:5000/api/jobs/all');
+                const response = await api.get('/jobs/all');
                 if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
                 const result = await response.json();
                 if (result.success) {

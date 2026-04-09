@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner.jsx';
+import api from '../services/api.js';
 
 function UnifiedContactModal({ isOpen, onClose }) {
     const [formData, setFormData] = useState({
@@ -127,7 +128,7 @@ function UnifiedContactModal({ isOpen, onClose }) {
                 requestData.position = formData.position;
             }
 
-            const response = await fetch('http://localhost:5000/api/concerns/create', {
+            const response = await api.post('/concerns/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

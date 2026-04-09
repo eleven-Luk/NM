@@ -26,6 +26,7 @@ import ViewAppModal from "../../components/modals/NM/applicants/ViewAppModal";
 import RestoreModal from "../../components/modals/NM/applicants/archieve/RestoreModal.jsx";
 import DeleteModal from "../../components/modals/NM/applicants/archieve/DeleteModal.jsx";
 
+import api from '../services/api.js';
 
 function NMApplicantsArchive() {
     // State declarations
@@ -68,7 +69,7 @@ function NMApplicantsArchive() {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/applications/archived', {
+            const response = await api.get('/applications/archived', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -109,8 +110,7 @@ function NMApplicantsArchive() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/applications/restore/${applicationId}`, {
-                method: 'PUT',
+            const response = await api.put(`/applications/restore/${applicationId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -175,8 +175,7 @@ function NMApplicantsArchive() {
             // Delete each selected application
             for (const applicationId of selectedApplications) {
                 try {
-                    const response = await fetch(`http://localhost:5000/api/applications/delete/${applicationId}`, {
-                        method: 'DELETE',
+                    const response = await api.delete(`/applications/delete/${applicationId}`, {
                         headers: {
                             'Authorization': `Bearer ${token}`,
                             'Content-Type': 'application/json'
@@ -266,8 +265,7 @@ function NMApplicantsArchive() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/applications/delete/${applicationId}`, {
-                method: 'DELETE',
+            const response = await api.delete(`/applications/delete/${applicationId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

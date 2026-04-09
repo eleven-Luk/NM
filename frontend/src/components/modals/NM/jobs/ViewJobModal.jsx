@@ -10,6 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../common/ViewModal.jsx';
 import LoadingSpinner from '../../../../components/common/LoadingSpinner.jsx';
+import api from '../services/api.js';
 
 function ViewJobModal({ jobId, isOpen, onClose }) {
     const [job, setJob] = useState(null);
@@ -34,7 +35,7 @@ function ViewJobModal({ jobId, isOpen, onClose }) {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/jobs/${jobId}`, {
+            const response = await api.get(`/jobs/${jobId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             

@@ -26,6 +26,8 @@ import ViewArchivedJobModal from "../../components/modals/NM/jobs/archived/ViewA
 import RestoreJobModal from "../../components/modals/NM/jobs/archived/RestoreJobModal.jsx";
 import DeleteJobModal from "../../components/modals/NM/jobs/archived/DeleteJobModal.jsx";
 
+import api from '../services/api.js';
+
 function NMArchivedJob() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -64,7 +66,7 @@ function NMArchivedJob() {
                 return;
             }
             
-            const response = await fetch('http://localhost:5000/api/jobs/archived', {
+            const response = await api.get('/jobs/archived', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -114,8 +116,7 @@ function NMArchivedJob() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/jobs/restore/${jobId}`, {
-                method: 'PUT',
+            const response = await api.put(`/jobs/restore/${jobId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -180,8 +181,7 @@ function NMArchivedJob() {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/jobs/delete/${jobId}`, {
-                method: 'DELETE',
+            const response = await api.delete(`/jobs/delete/${jobId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'

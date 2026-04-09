@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import BaseModal from '../modals/common/BaseModal.jsx';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import api from '../services/api.js';
 
 function NMContactModal({ isOpen, onClose, job }) {
     const [formData, setFormData] = useState({
@@ -159,7 +160,7 @@ function NMContactModal({ isOpen, onClose, job }) {
             formDataToSend.append('resume', formData.resume);
             formDataToSend.append('message', formData.message || '');
             
-            const response = await fetch('http://localhost:5000/api/applications/create', {
+            const response = await api.post('/applications/create', {
                 method: 'POST',
                 body: formDataToSend
             });

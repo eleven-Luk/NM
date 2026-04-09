@@ -17,6 +17,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../../common/ViewModal.jsx';
 import LoadingSpinner from '../../../../common/LoadingSpinner.jsx';
+import api from '../services/api.js';
 
 function ViewArchivedJobModal({ isOpen, onClose, jobId }) {
     const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ function ViewArchivedJobModal({ isOpen, onClose, jobId }) {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/jobs/archived/${jobId}`, {
+            const response = await api.get(`/jobs/archived/${jobId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

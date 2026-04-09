@@ -18,6 +18,8 @@ import {
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import PublicCalendar from '../../components/calendar/PublicCalendar';
 
+import api from '../services/api.js';
+
 function MContactModal({ isOpen, onClose, appointment }) {
     const [formData, setFormData] = useState({
         name: '',
@@ -67,7 +69,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
     setCheckingAvailability(true);
         try {
             console.log(`🔍 Fetching available time slots for date: ${date}`);
-            const response = await fetch(`http://localhost:5000/api/appointments/available-time-slots?date=${date}`);
+            const response = await api.get(`/appointments/available-time-slots?date=${date}`);
 
             if (response.ok) {
                 const result = await response.json();
@@ -102,7 +104,7 @@ function MContactModal({ isOpen, onClose, appointment }) {
     // Check time slot availability with duration (for final submission verification)
     const checkTimeSlotAvailability = async (date, time, duration) => {
         try {
-            const response = await fetch(`http://localhost:5000/api/appointments/check-time-slot?date=${date}&time=${time}&durationHours=${duration}`);
+            const response = await api.get(`/appointments/check-time-slot?date=${date}&time=${time}&durationHours=${duration}`);
             if (response.ok) {
                 const result = await response.json();
                 return result;

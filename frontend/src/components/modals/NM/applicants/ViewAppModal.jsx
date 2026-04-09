@@ -22,6 +22,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import ViewModal from '../../common/ViewModal';
 import LoadingSpinner from '../../../common/LoadingSpinner';
+import api from '../services/api.js';
 
 const ViewAppModal = ({ isOpen, onClose, application }) => {
     const [loading, setLoading] = useState(false);
@@ -47,7 +48,7 @@ const ViewAppModal = ({ isOpen, onClose, application }) => {
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/applications/view/${application._id}`, {
+            const response = await api.get(`/applications/view/${application._id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -87,7 +88,7 @@ const ViewAppModal = ({ isOpen, onClose, application }) => {
             const fileName = currentData.resume.split('/').pop();
             
             // Fetch the file from the server
-            const response = await fetch(`http://localhost:5000${currentData.resume}`, {
+            const response = await api.get(`${currentData.resume}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }

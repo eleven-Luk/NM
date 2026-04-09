@@ -17,6 +17,7 @@ import {
 
 import FilterBar from "../../components/common/FilterBar";
 import ApplicantTable from "../../components/tables/ApplicantTable";
+import api from '../services/api.js';
 
 // Modals
 import EditAppModal from "../../components/modals/NM/applicants/EditAppModal.jsx";
@@ -68,7 +69,7 @@ function NMApplicants() {
         setError(null);
         try {
             const token = localStorage.getItem('token');
-            const response = await fetch('http://localhost:5000/api/applications/getAll', {
+            const response = await api.get('/applications/getAll', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -113,8 +114,7 @@ function NMApplicants() {
             // Log what we're sending
             console.log('Sending to backend:', { status, notes, sendEmail, adminMessage });
 
-            const response = await fetch(`http://localhost:5000/api/applications/updateStatus/${applicationId}`, {
-                method: 'PUT',
+            const response = await api.put(`/applications/updateStatus/${applicationId}`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`

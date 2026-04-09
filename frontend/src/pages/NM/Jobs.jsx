@@ -30,6 +30,7 @@ import NMContactModal from '../../components/modals/NMContactModal';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import FilterBar from '../../components/common/FilterBar';
 
+import api from '../services/api.js';
 import bgImg from '../../assets/NM.png';
 
 function Jobs() {
@@ -71,7 +72,7 @@ function Jobs() {
             
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:5000/api/jobs/all', {
+                const response = await api.get('/jobs/all', {
                     headers: {
                         'Authorization': token ? `Bearer ${token}` : '',
                         'Content-Type': 'application/json'

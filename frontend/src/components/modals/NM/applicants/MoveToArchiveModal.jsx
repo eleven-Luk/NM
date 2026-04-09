@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArchive, faExclamationTriangle, faTimes } from '@fortawesome/free-solid-svg-icons';
 import ConfirmModal from '../../common/ConfirmModal.jsx';
+import api from '../services/api.js';
 
 const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, application }) => {
     const [isLoading, setIsLoading] = React.useState(false);
@@ -34,8 +35,7 @@ const MoveToArchiveModal = ({ isOpen, onClose, onMoveToArchiveSuccess, applicati
                 return;
             }
 
-            const response = await fetch(`http://localhost:5000/api/applications/archive/${application._id}`, {
-                method: 'PATCH',
+            const response = await api.patch(`/applications/archive/${application._id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
