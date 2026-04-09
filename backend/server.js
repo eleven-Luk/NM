@@ -30,7 +30,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Middleware
-app.use(cors());                          //  Cross-origin requests
+app.use(cors({
+    origin: '*',  
+    credentials: true
+}));                          //  Cross-origin requests
 app.use(express.json());                  //  JSON API requests
 app.use(express.urlencoded({ extended: true })); // HTML form submissions
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve uploaded files
