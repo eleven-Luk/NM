@@ -1,9 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createJob, getAllJobs, getViewJob, updateJob
-    , moveToArchive, getArchivedJobs, restoreJob, deleteArchivedJob, viewArchivedJob
- } from '../controllers/NM/JobController.js';
- import { protect } from '../middleware/auth.js';
+import { createJob, getAllJobs, getViewJob, updateJob, moveToArchive, getArchivedJobs, restoreJob, deleteArchivedJob, viewArchivedJob } from '../../controllers/NM/JobController.js';
+import { protect } from '../../middleware/auth.js';
 
 const router = express.Router();
 
@@ -23,14 +21,14 @@ router.get('/archived/:jobId', protect, viewArchivedJob);
 router.get('/:id', getViewJob)
 
 // Put routes
-router.put('/restore/:jobId', protect, restoreJob); // Fixed: removed duplicate, using :jobId
+router.put('/restore/:jobId', protect, restoreJob);
 router.put('/update/:id', protect, validateJobCreation, updateJob);
 
 // Patch routes
 router.patch('/archive/:jobId', protect, moveToArchive);
 
 // Delete routes
-router.delete('/delete/:jobId', protect, deleteArchivedJob); // Fixed: added protect middleware
+router.delete('/delete/:jobId', protect, deleteArchivedJob);
 
 // Post routes
 router.post('/create', protect, validateJobCreation, createJob);
